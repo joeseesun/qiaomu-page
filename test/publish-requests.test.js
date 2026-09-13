@@ -128,7 +128,7 @@ test("downloaded CLI retries a lost publication response without a second site a
       p.stdout.on("data", d => out += d); p.stderr.on("data", d => err += d); p.on("close", code => resolve({ code, out, err }));
     });
   }
-  assert.equal((await run(["publish", file])).code, 1);
+  assert.equal((await run(["publish", file])).code, 40);
   assert.equal(db.prepare("SELECT count(*) n FROM works").get().n, 1);
   const retry = await run(["publish", file]); assert.equal(retry.code, 0, retry.err);
   const { work, replayed } = JSON.parse(retry.out); assert.equal(replayed, true);

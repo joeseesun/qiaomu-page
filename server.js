@@ -3,6 +3,7 @@ require("dotenv").config({ quiet: true });
 const express = require("express");
 const { openDatabase } = require("./lib/storage/sqlite");
 const { createHash, randomInt } = require("node:crypto");
+const { installAccess, isPublic } = require("./lib/access");
 const { accounts } = require("./lib/accounts");
 const { installPrompt, agentSkill, capabilities } = require("./lib/agent");
 const { prepareFiles, validPath, types } = require("./lib/files");
@@ -25,7 +26,7 @@ const atomicRoutes = require("./lib/atomic-routes");
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const THEMES = ["sage", "sand", "ink", "rose"];
 const summaryColumns =
-  "slug,title,description,tags,theme,published,revision,created_at,updated_at,cover_mime,owner_id,listed,file_count,byte_size";
+  "slug,title,description,tags,theme,published,revision,created_at,updated_at,cover_mime,owner_id,listed,file_count,byte_size,access_mode,access_revision";
 async function createApp(options = {}) {
   const token = options.token || process.env.QUICKSHARE_TOKEN;
   if (!token || token.length < 32)
@@ -53,6 +54,7 @@ async function createApp(options = {}) {
     const repository = new WorkRepository(db, content);
     await repository.initialize();
     const app = asyncRoutes(express());
+    require("./lib/errors")(app);
     if (options.streamResponses) app.use(require("./lib/stream-responses"));
     const baseUrl = (
       options.baseUrl ||
@@ -141,6 +143,15 @@ async function createApp(options = {}) {
     );
     app.use(express.json({ limit: "16mb", strict: true }));
     auth.routes();
+    const access = await installAccess({
+      app,
+      db,
+      indexRoutes,
+      auth,
+      repository,
+      baseUrl,
+      owns,
+    });
     const rowToWork = (row) =>
       row && {
         ...Object.fromEntries(
@@ -160,15 +171,23 @@ async function createApp(options = {}) {
     const find = (slug) => repository.get(slug);
     const publicWork = async (req, res, next) => {
       const row = await find(req.params.slug);
-      if (!row || !(await repository.raw(row.slug))?.published)
+      const current = row && (await repository.raw(row.slug));
+      if (!row || !current?.published)
         return res
           .status(404)
           .render("error", { message: "这件作品尚未发布，或已经下架。" });
+      if (!isPublic(current))
+        return res
+          .status(404)
+          .set("Cache-Control", "no-store")
+          .render("error", { message: "此作品未开放公开访问。" });
       res.locals.work = rowToWork(row);
       next();
     };
     async function list(search = "", tag = "", all = false, member = null) {
-      const clauses = all ? [] : ["published=1", "listed=1"];
+      const clauses = all
+        ? []
+        : ["published=1", "listed=1", "access_mode='public'"];
       const params = [];
       if (all && member && !member.admin) {
         clauses.push("owner_id=?");
@@ -273,7 +292,49 @@ async function createApp(options = {}) {
           if (!(await repository.raw(candidate))) return candidate;
         }
       };
+      const canonical = (v) =>
+        Array.isArray(v)
+          ? v.map(canonical)
+          : v && typeof v === "object"
+            ? Object.fromEntries(
+                Object.keys(v)
+                  .sort()
+                  .map((k) => [k, canonical(v[k])]),
+              )
+            : v;
       const { requestId } = req.body;
+      let updateHash;
+      if (!creating && requestId !== undefined) {
+        if (
+          typeof requestId !== "string" ||
+          !/^[a-zA-Z0-9_-]{16,128}$/.test(requestId)
+        )
+          return res
+            .status(400)
+            .json({ error: "更新请求标识无效。", code: "INVALID_REQUEST_ID" });
+        updateHash = createHash("sha256")
+          .update(JSON.stringify(canonical({ slug, body: req.body })))
+          .digest("hex");
+        const previous = await db
+          .prepare(
+            "SELECT * FROM update_requests WHERE member_id=? AND request_id=?",
+          )
+          .get(req.member.id, requestId);
+        if (previous) {
+          if (previous.payload_hash !== updateHash || previous.slug !== slug)
+            return res
+              .status(409)
+              .json({
+                error: "同一请求的内容已改变。",
+                code: "REQUEST_CHANGED",
+              });
+          const row = await find(slug);
+          if (!row || !owns(req, row))
+            return res.status(404).json({ error: "作品不存在。" });
+          const { html, files, cover, ...work } = rowToWork(row);
+          return res.json({ work, replayed: true });
+        }
+      }
       if (creating) {
         if (
           typeof requestId !== "string" ||
@@ -284,16 +345,6 @@ async function createApp(options = {}) {
             .json({ error: "发布请求标识无效，请重新发起发布。" });
         if (req.body.revision !== undefined)
           return res.status(400).json({ error: "更新网站请使用原地址。" });
-        const canonical = (v) =>
-          Array.isArray(v)
-            ? v.map(canonical)
-            : v && typeof v === "object"
-              ? Object.fromEntries(
-                  Object.keys(v)
-                    .sort()
-                    .map((k) => [k, canonical(v[k])]),
-                )
-              : v;
         const { requestId: omittedId, ...payload } = req.body;
         payloadHash = createHash("sha256")
           .update(JSON.stringify(canonical(payload)))
@@ -447,6 +498,22 @@ async function createApp(options = {}) {
       const outcome = await repository.transaction(async () => {
         if (!(await authenticated(req)))
           return { status: 401, error: "当前连接已失效，请重新连接。" };
+        if (updateHash) {
+          const previous = await db
+            .prepare(
+              "SELECT * FROM update_requests WHERE member_id=? AND request_id=?",
+            )
+            .get(req.member.id, requestId);
+          if (previous)
+            return previous.payload_hash === updateHash &&
+              previous.slug === slug
+              ? { replay: slug }
+              : {
+                  status: 409,
+                  error: "同一请求的内容已改变。",
+                  code: "REQUEST_CHANGED",
+                };
+        }
         if (creating) {
           const previous = await db
             .prepare(
@@ -521,6 +588,10 @@ async function createApp(options = {}) {
             packed.content_bytes,
           );
         await saveVersion(await repository.raw(slug));
+        if (updateHash)
+          await db
+            .prepare("INSERT INTO update_requests VALUES(?,?,?,?)")
+            .run(req.member.id, requestId, updateHash, slug);
         if (creating)
           await db
             .prepare("INSERT INTO publish_requests VALUES(?,?,?,?)")
@@ -649,13 +720,43 @@ async function createApp(options = {}) {
         return res.status(outcome.status).json({ error: outcome.error });
       res.json({ ok: true });
     });
-    app.use("/s/:slug", async (req, res) => {
+    const serveSite = async (req, res) => {
+      res.set({
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Robots-Tag": "noindex",
+      });
       let row = await repository.raw(req.params.slug);
       if (!row || !row.published)
         return res.status(404).type("text").send("内容尚未发布或已下架。");
       if (!["GET", "HEAD"].includes(req.method)) return res.status(405).end();
+      if (
+        !isPublic(row) &&
+        !req.params.shareKey &&
+        req.method === "GET" &&
+        req.get("sec-fetch-dest") === "document"
+      ) {
+        const url = await access.ownerView(req, row);
+        if (url)
+          return res
+            .set({ "Cache-Control": "no-store", "X-Robots-Tag": "noindex" })
+            .redirect(302, url);
+      }
+      const permitted = () =>
+        req.params.shareKey ? access.shared(req, row) : access.allows(req, row);
+      if (!(await permitted()))
+        return res
+          .status(403)
+          .set({ "Cache-Control": "no-store", "X-Robots-Tag": "noindex" })
+          .type("text")
+          .send("此网站需要有效的访问链接，或作者身份。");
       if (req.path === "/" && !req.originalUrl.split("?")[0].endsWith("/"))
-        return res.redirect(308, `/s/${row.slug}/`);
+        return res.redirect(
+          308,
+          req.params.shareKey
+            ? `/r/${req.params.shareKey}/${row.slug}/`
+            : `/s/${row.slug}/`,
+        );
       let name;
       try {
         name = decodeURIComponent(req.path).replace(/^\//, "");
@@ -668,6 +769,12 @@ async function createApp(options = {}) {
       row = await content.unpack(row, { files: false, images: false });
       if (!(await repository.raw(row.slug))?.published)
         return res.status(404).end();
+      const currentAccess = await repository.raw(row.slug);
+      row.access_mode = currentAccess.access_mode;
+      row.access_revision = currentAccess.access_revision;
+      row.owner_id = currentAccess.owner_id;
+      if (!(await permitted()))
+        return res.status(403).set("Cache-Control", "no-store").end();
       if (!bytes) return res.status(404).type("text").send("文件不存在。");
       res.set({
         "Content-Security-Policy":
@@ -675,28 +782,35 @@ async function createApp(options = {}) {
         "Cache-Control": "no-store",
         "X-Robots-Tag": "noindex",
       });
-      if (indexable(row)) res.removeHeader("X-Robots-Tag");
-      if (name === "index.html") {
+      if (isPublic(row) && indexable(row) && !req.params.shareKey)
+        res.removeHeader("X-Robots-Tag");
+      if (name === "index.html" && isPublic(row) && !req.params.shareKey) {
         if (!metadata(row.html).tags.canonical)
           res.set("Link", `<${baseUrl}/s/${row.slug}/>; rel="canonical"`);
         if (row.share_enabled) bytes = Buffer.from(enhance(row, baseUrl));
       }
       // Only public site files support anonymous module/font fetch; never use credentials or CORS on management APIs.
-      if (req.get("origin") === "null")
+      if (
+        req.get("origin") === "null" &&
+        (isPublic(row) || req.params.shareKey)
+      )
         res.set({ "Access-Control-Allow-Origin": "null", Vary: "Origin" });
       res
         .type(
           types[path.extname(name).toLowerCase()] || "application/octet-stream",
         )
         .send(bytes);
-    });
+    };
+    // Read-only capability routes preserve relative paths and exact bytes inside the opaque sandbox.
+    app.use("/r/:shareKey/:slug", serveSite);
+    app.use("/s/:slug", serveSite);
     app.get("/explore", async (req, res) => {
       const q = String(req.query.q || "").slice(0, 200),
         tag = String(req.query.tag || "").slice(0, 30);
       const tags = (
         await db
           .prepare(
-            "SELECT DISTINCT value AS tag FROM works,json_each(works.tags) WHERE published=1 AND listed=1 ORDER BY value",
+            "SELECT DISTINCT value AS tag FROM works,json_each(works.tags) WHERE published=1 AND listed=1 AND access_mode='public' ORDER BY value",
           )
           .all()
       ).map((r) => r.tag);
@@ -717,7 +831,7 @@ async function createApp(options = {}) {
         total: (
           await db
             .prepare(
-              "SELECT count(*) AS n FROM works WHERE published=1 AND listed=1",
+              "SELECT count(*) AS n FROM works WHERE published=1 AND listed=1 AND access_mode='public'",
             )
             .get()
         ).n,

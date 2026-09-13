@@ -208,8 +208,9 @@ test("CLI publishes, updates, exports and preserves private login credentials", 
   ]);
   assert.equal(r.code, 0, r.err);
   assert.equal(JSON.parse(r.out).work.revision, 1);
-  r = await cli(["publish", file, "--slug", "demo"]);
-  assert.equal(r.code, 1);
+  r = await cli(["publish", file, "--slug", "demo", "--json"]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(JSON.parse(r.out).unchanged, true);
   r = await cli(["update", "demo", file, "--title", "第二版", "--json"]);
   assert.equal(r.code, 0, r.err);
   assert.equal(JSON.parse(r.out).work.revision, 2);
@@ -219,7 +220,7 @@ test("CLI publishes, updates, exports and preserves private login credentials", 
   const exported = path.join(dir, "saved.html");
   assert.equal((await cli(["get", "demo", "--output", exported])).code, 0);
   assert.equal(fs.readFileSync(exported, "utf8"), sample.html);
-  assert.equal((await cli(["get", "demo", "--output", exported])).code, 1);
+  assert.equal((await cli(["get", "demo", "--output", exported])).code, 2);
   r = await cli(["list", "--json"]);
   assert.equal(JSON.parse(r.out).works.length, 1);
 });

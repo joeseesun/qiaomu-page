@@ -171,13 +171,20 @@ npm start
 ```sh
 node quickshare.js whoami --json
 node quickshare.js publish ./dist
-node quickshare.js update RETURNED_SLUG ./dist
+node quickshare.js update ./dist
+node quickshare.js publish ./dist --new
+node quickshare.js access RETURNED_SLUG --mode link
+node quickshare.js share RETURNED_SLUG --name Friend --expires 7d --output ./private-share.json
 node quickshare.js list --json
 node quickshare.js versions RETURNED_SLUG
 node quickshare.js account --json
 ```
 
 `RETURNED_SLUG` 用发布时返回的实际值替换。未配置实例地址时，CLI 会停止并提示登录，不会连接到别人的服务。QiaoPage 保留 `quickshare` CLI、`qiaomu-quickshare` Skill 与旧配置标识，已有连接无需重建。见[品牌与兼容性](docs/branding.md)。
+
+直接对 Agent 说：「更新到 qp」「另建一个网站」「设为仅自己可见」「生成一个 7 天有效的分享链接」「撤销给小王的链接」。
+
+项目关联、错误恢复、访问模式与升级注意事项见[CLI 与分享权限](docs/cli-and-access.md)。分享文件包含只读访问地址，应保存在发布目录之外。
 
 ## 数据放在哪里
 
@@ -206,7 +213,7 @@ flowchart LR
 
 - **静态发布**：不运行后端 Node、Python、PHP，也不托管数据库型应用。前端项目先构建，再上传静态产物。
 - **内容大小**：每次最多 100 个文件 / 8 MiB，单文件最多 5 MiB，每位成员最多 100 个站点。大文件自动分块上传。
-- **链接可见性**：默认不进入展厅，但任何拿到链接的人都能访问。不要把它当作私密文档权限系统。
+- **访问权限**：默认凭普通链接访问、不进入展厅。可通过 Agent 改为「仅自己」或「受限链接」，并设置分享链接的有效期与撤销。受限链接可被转发。
 - **网页隔离**：不开放管理站 Cookie / localStorage、Service Worker；静态资源建议使用相对路径。
 - **运行成本**：开源代码使用 ISC 许可；云平台、域名与存储费用由部署者承担，免费额度以各平台当前规则为准。
 - **发布形态**：目前从源码安装，尚未提供预构建容器镜像。默认 SQLite 使用单实例和持久卷。
@@ -220,7 +227,7 @@ flowchart LR
 
 **提示没有配置服务地址？** 使用你自己实例的首页 Prompt 接入，或查看 `node quickshare.js login --help`。不要把管理员密钥发给朋友。
 
-**更新后链接会变吗？** 使用 `update` 更新原站点，地址不变。重新执行 `publish` 发布修改后的文件代表创建另一个站点。
+**更新后链接会变吗？** CLI 1.6 起，同一来源的 `publish` 自动更新已关联站点，`update` 只更新、不新建。明确另建时用 `publish --new`。旧项目先用 `link SLUG SOURCE` 关联已有站点。
 
 **能替代通用应用托管吗？** 当前面向个人和朋友分享静态作品。需要服务器代码、登录型前端存储或更大文件时，应选择匹配该需求的部署方式。
 
