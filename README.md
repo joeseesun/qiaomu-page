@@ -11,6 +11,9 @@
 
 [体验首页 ↗](https://quickshare-agent-test.vercel.app) · [玩一个真实作品](https://quickshare-agent-test.vercel.app/s/site-jqutfay8tx/) · [自己部署](#快速开始) · [Agent 接入](#把发布留在对话里)
 
+[![Deploy with Vercel](https://vercel.com/button)][deploy-vercel]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)][deploy-cloudflare]
+
 [![Verify](https://github.com/joeseesun/qiaopage/actions/workflows/check.yml/badge.svg)](https://github.com/joeseesun/qiaopage/actions/workflows/check.yml)
 [![License: ISC](https://img.shields.io/badge/License-ISC-171717.svg)](LICENSE)
 [![Node.js 24+](https://img.shields.io/badge/Node.js-24%2B-171717.svg)](package.json)
@@ -131,7 +134,16 @@ docker compose --env-file .env.docker exec -T quickshare \
 
 [完整 Docker 指南 →](DOCKER_INSTALL.md)
 
-### Cloudflare / Vercel：用官方 CLI 安装
+### 一键部署到云端
+
+[![Deploy with Vercel](https://vercel.com/button)][deploy-vercel]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)][deploy-cloudflare]
+
+点击按钮，在自己的账号下创建仓库和云服务。Vercel 已预选 **Turso + 私有 Blob**；Cloudflare 从配置创建 **Durable Object + 私有 R2**。按向导保存管理员密钥并确认平台资源，完成后让 Agent 接入。
+
+[安装与首次管理员接入 →](docs/deploy-buttons.md) · [验收范围](docs/verification.md#部署按钮)
+
+### 也可以让 Agent 用 CLI 安装
 
 克隆仓库后，使用 Node.js 24+ 安装依赖，选择一个平台执行：
 
@@ -147,7 +159,7 @@ npm run install:vercel -- qiaopage
 
 安装脚本创建或复用资源、生成并保存管理员密钥，完成后输出访问地址。需要你自己的平台账号；首次登录、服务条款和可能涉及的计费开通由本人确认。`qiaopage` 可换成自己的项目名；已有安装升级时沿用原名。
 
-这是**已实测的 CLI 安装**。浏览器一键部署按钮尚未验收，不作为当前可用入口。
+CLI 安装与云端运行已实测。按钮提供官方安装向导；登录、套餐和条款由本人确认。
 
 [云端安装、管理员登录与恢复 →](docs/cloud-install.md)
 
@@ -246,7 +258,7 @@ npm run verify:backends   # libSQL + MinIO 集成验收
 npm run verify:cloudflare # 本地原生 Workers 验收
 ```
 
-当前发布通过 56 项自动化测试与桌面 / 390px 浏览器验收。CI 持续验证 Node、Docker、libSQL / S3 与 Workers；实际云部署和恢复记录见[验收范围](docs/verification.md)。
+当前发布通过 66 项自动化测试与桌面 / 390px 浏览器验收。CI 持续验证 Node、Docker、libSQL / S3 与 Workers；实际云部署和恢复记录见[验收范围](docs/verification.md)。
 
 <details>
 <summary>代码导览</summary>
@@ -262,7 +274,7 @@ npm run verify:cloudflare # 本地原生 Workers 验收
 
 </details>
 
-下一步：浏览器部署按钮验收、预构建容器镜像，以及更顺手的首次部署体验。这些是计划，尚未作为已交付能力提供。
+下一步：完成全新账号的浏览器按钮安装验收、提供预构建容器镜像，继续缩短首次部署流程。
 
 ## 来源与作者
 
@@ -272,3 +284,6 @@ QiaoPage 从 [Quickshare](https://github.com/joeseesun/quickshare) 演进而来�
 
 [个人网站](https://qiaomu.ai) · [博客](https://blog.qiaomu.ai) · [乔木推荐](https://tuijian.qiaomu.ai) · [X @vista8](https://x.com/vista8) · [GitHub](https://github.com/joeseesun/)<br>
 微信公众号：向阳乔木推荐看
+
+[deploy-vercel]: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage&project-name=qiaopage&repository-name=qiaopage&env=QUICKSHARE_TOKEN&envDescription=Create+a+random+admin+secret+%28at+least+32+characters%29+and+save+it+privately.+See+the+setup+guide.&envLink=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage%2Fblob%2Fmain%2Fdocs%2Fdeploy-buttons.md&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22private%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22tursocloud%22%2C%22productSlug%22%3A%22database%22%2C%22protocol%22%3A%22storage%22%2C%22allowConnectExistingProduct%22%3Afalse%7D%5D&demo-title=QiaoPage&demo-description=Publish+from+your+agent.+Share+with+one+link.&demo-url=https%3A%2F%2Fquickshare-agent-test.vercel.app&demo-image=https%3A%2F%2Fraw.githubusercontent.com%2Fjoeseesun%2Fqiaopage%2Fmain%2Fdocs%2Fassets%2Fhero.png
+[deploy-cloudflare]: https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage

@@ -34,3 +34,9 @@ PITR 不等同异地备份，也不能恢复已删除的 R2 bucket。Cloudflare 
 ## 范围边界
 
 当前验收对象是两个独立测试安装，没有将生产域名或生产账号搬到 Cloudflare / Vercel。CLI 安装流程经过真实执行；公开浏览器部署按钮尚未测试。仓库以 QiaoPage 名称开源，页面与文档同步更名，CLI / API / 旧配置标识兼容保留。没有发布预构建容器镜像或正式发行版。
+
+## 部署按钮
+
+2026-09-13：中英文 README 已加入平台官方按钮。Vercel URL 声明必填管理员 secret、Turso 集成和 private Blob；Cloudflare 使用现有 Wrangler 资源声明，并增加只含空管理员 secret 的 `.dev.vars.example`。示例环境文件中的本地配置改为注释，避免云端向导误导入 localhost 或文件数据库设置。
+
+本次 `npm run check`、66 项 `npm test`、`npm run build:vercel` 和 `npm run verify:cloudflare` 全部通过。按钮参数与两个示例文件仅含空 secret 的断言通过，GitHub Markdown API 确认两种按钮均正确渲染为链接；原有 CLI 与两个云端运行时的验收仍独立成立。**完整浏览器按钮安装尚未验收。** 本次浏览器自动化在进入目标页前无法加载请求头策略，返回 `Unable to load browser request-header policy`；没有把 CLI 部署或文档核对代替成点击按钮成功的证据。安装、首次管理员接入、资源隔离与升级方法见[按钮指南](deploy-buttons.md)。
