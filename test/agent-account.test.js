@@ -91,20 +91,20 @@ async function cliFixture(t,fixtureData){
 test("portable CLI discovers permissions, changes own account, stores generated passwords privately and previews without saving",async t=>{
  const f=await fixture(t),{run,dir,config}=await cliFixture(t,f),originalConfig=fs.readFileSync(config,"utf8");
  const who=await run(["whoami"]);assert.equal(who.data.account.id,f.a.id);
- const cap=await run(["capabilities"]);assert.equal(cap.data.cliVersion,"1.5.0");
+ const cap=await run(["capabilities"]);assert.equal(cap.data.cliVersion,"1.6.0");
  const renamed=await run(["account","--username","agent-user"]);assert.equal(renamed.code,0,renamed.stderr);
  const file=path.join(dir,"password.txt"),generated=await run(["account","--generate-password","--output",file]);
  assert.equal(generated.code,0,generated.stderr);assert.equal(generated.data.passwordVerified,true);
  const password=fs.readFileSync(file,"utf8").trim();assert.ok(password.length>=24);assert.equal(fs.statSync(file).mode&0o777,0o600);
  assert.ok(!generated.stdout.includes(password)&&!generated.stderr.includes(password));
  assert.equal((await run(["account","--verify-password-stdin"],password+"\n")).data.valid,true);
- assert.equal((await run(["account","--generate-password","--output",file])).code,1);
+ assert.equal((await run(["account","--generate-password","--output",file])).code,2);
  assert.equal(fs.readFileSync(config,"utf8"),originalConfig);
  const visibility=await run(["visibility","owned","--gallery","true"]);assert.equal(visibility.data.work.listed,true);assert.equal(visibility.data.work.search_indexable,0);
  const output=path.join(dir,"preview.png");const preview=await run(["sharing","owned","--preview","--share-enabled","true","--title","Card preview","--output",output]);assert.equal(preview.code,0,preview.stderr);
  assert.equal(fs.readFileSync(output).readUInt32BE(16),1200);assert.equal((await run(["sharing","owned"])).data.enabled,false);
- const forbidden=await run(["friends"]);assert.equal(forbidden.code,1);assert.equal(JSON.parse(forbidden.stderr).error.status,403);
- const bad=await run(["account","--password-stdin"],"short");assert.equal(bad.code,1);assert.ok(!bad.stderr.includes('"short"'));
+ const forbidden=await run(["friends"]);assert.equal(forbidden.code,10);assert.equal(JSON.parse(forbidden.stderr).error.status,403);
+ const bad=await run(["account","--password-stdin"],"short");assert.equal(bad.code,2);assert.ok(!bad.stderr.includes('"short"'));
 });
 test("administrator CLI friend tools remain permission-bound and write invitation and recovery secrets only to private files",async t=>{
  const f=await fixture(t),{run,dir}=await cliFixture(t,f);
@@ -117,7 +117,7 @@ test("administrator CLI friend tools remain permission-bound and write invitatio
  const recovered=await run(["recover",String(f.a.id),"--output",path.join(dir,"recover.json")],"",rootToken);assert.equal(recovered.code,0,recovered.stderr);
  assert.ok(!recovered.stdout.includes("本次连接码"));
  assert.equal((await run(["friend",String(f.a.id),"--disabled","true"],"",rootToken)).code,0);
- assert.equal((await run(["whoami"])).code,1);
+ assert.equal((await run(["whoami"])).code,10);
 });
 test("a lost account response preserves the generated password for verification without a second mutation",async t=>{
  const f=await fixture(t),{run,dir}=await cliFixture(t,f);
@@ -134,7 +134,7 @@ test("a lost account response preserves the generated password for verification 
  t.after(()=>new Promise(r=>{proxy.close(r);proxy.closeIdleConnections();}));
  const file=path.join(dir,"retained-password.txt");
  const lost=await run(["account","--generate-password","--output",file,"--url",`http://127.0.0.1:${proxy.address().port}`],"",f.a.token);
- assert.equal(lost.code,1);assert.equal(dropped,true);
+ assert.equal(lost.code,40);assert.equal(dropped,true);
  const password=fs.readFileSync(file,"utf8");assert.ok(!lost.stderr.includes(password.trim()));
  const checked=await run(["account","--verify-password-stdin"],password);assert.equal(checked.code,0,checked.stderr);assert.equal(checked.data.valid,true);
  assert.equal(f.db.prepare("SELECT account_revision n FROM members WHERE id=?").get(f.a.id).n,1);
@@ -150,6 +150,6 @@ test("unconfigured self-hosted CLI never sends an environment token to a default
   const child=spawn(process.execPath,["--require",hook,path.resolve(__dirname,"../bin/quickshare.js"),"whoami","--json"],{env,stdio:["ignore","pipe","pipe"]});
   let out="",err="";child.stdout.on("data",d=>out+=d);child.stderr.on("data",d=>err+=d);child.on("error",reject);child.on("close",code=>resolve({code,out,err}));
  });
- assert.equal(result.code,1);assert.match(result.err,/No Quickshare server configured/);
+ assert.equal(result.code,2);assert.match(result.err,/No Quickshare server configured/);
  assert.equal(fs.existsSync(marker),false);assert.ok(!(result.err+result.out).includes(rootToken));
 });

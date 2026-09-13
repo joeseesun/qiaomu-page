@@ -1,6 +1,6 @@
 {
   "name": "qiaopage",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "description": "面向 Agent 的邀请制网站发布服务 | Agent-first, invitation-only web publishing",
   "main": "server.js",
@@ -27,7 +27,8 @@
     "verify:deployment": "node scripts/verify-deployment.cjs",
     "install:cloudflare": "node scripts/install-cloud.cjs cloudflare",
     "install:vercel": "node scripts/install-cloud.cjs vercel",
-    "build:vercel": "node scripts/build-vercel.cjs"
+    "build:vercel": "node scripts/build-vercel.cjs",
+    "verify:access": "node scripts/verify-access.cjs"
   },
   "license": "ISC",
   "dependencies": {

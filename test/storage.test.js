@@ -374,7 +374,7 @@ test("failed index transactions never return invitation credentials or partial w
   assert.equal(response.status, 500);
   assert.equal(response.headers.get("set-cookie"), null);
   const body = await response.json();
-  assert.equal(body.code, undefined);
+  assert.equal(body.code, "SERVER_ERROR");
   assert.equal(body.invite, undefined);
   assert.equal(r.db.prepare("SELECT count(*) n FROM invites").get().n, 0);
   r.database.transaction = transaction;

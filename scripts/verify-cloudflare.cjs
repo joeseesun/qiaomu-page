@@ -103,10 +103,12 @@ async function run(file, env) {
   };
   await start();
   await run("scripts/verify-deployment.cjs", env);
+  await run("scripts/verify-access-api.cjs", env);
   await run("scripts/verify-large-upload.cjs", env);
   await stop();
   await start();
   await run("scripts/verify-deployment.cjs", env);
+  await run("scripts/verify-access-api.cjs", env);
   console.log(
     "Cloudflare native runtime, large uploads and persistent restart passed.",
   );

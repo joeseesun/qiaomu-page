@@ -89,18 +89,23 @@ After connecting, use the installed CLI path:
 ```sh
 node quickshare.js whoami --json
 node quickshare.js publish ./dist
-node quickshare.js update RETURNED_SLUG ./dist
+node quickshare.js update ./dist
+node quickshare.js publish ./dist --new
+node quickshare.js access RETURNED_SLUG --mode link
+node quickshare.js share RETURNED_SLUG --name Friend --expires 7d --output ./private-share.json
 node quickshare.js list --json
 node quickshare.js account --json
 ```
 
 Replace `RETURNED_SLUG` with the actual publication result. Without an explicit configured instance, the CLI stops instead of sending credentials to another server. The `quickshare` command, `qiaomu-quickshare` Skill ID, environment variables, and private configuration paths are retained for compatibility with existing Quickshare installations. No data migration is needed for the rebrand.
 
+CLI 1.6 associates a source with its site: subsequent `publish` updates it, `update` requires an existing association, and `publish --new` creates another site. Attach legacy sources first with `link SLUG SOURCE`. Keep share receipts outside the upload tree. See [CLI and access design](docs/cli-and-access.md).
+
 ## Limits and trust
 
 - Static hosting only; no server-side execution. Build frontend apps locally and publish their static output.
 - Up to 100 files / 8 MiB total per upload, 5 MiB per file, and 100 sites per member. Large uploads are chunked automatically.
-- Unlisted means absent from the gallery, not private: anyone with the link can view a published site.
+- Access defaults to public-by-link, independently of gallery visibility. Choose owner-only or revocable, expiring read-only links through the Agent/CLI. Share links can be forwarded.
 - User HTML runs in an opaque sandbox. Management cookies, localStorage, and Service Workers are unavailable. Use relative asset paths.
 - Default SQLite uses a single instance and persistent storage. Never use an ephemeral filesystem for persistent data.
 - Code is ISC-licensed; hosting, domains, and storage may incur provider charges. There is no promise of permanent free hosting.
