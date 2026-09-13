@@ -10,6 +10,9 @@ Turn agent-created HTML, Markdown, and static folders into links you can keep up
 
 [Live home](https://quickshare-agent-test.vercel.app) · [Play a published game](https://quickshare-agent-test.vercel.app/s/site-jqutfay8tx/) · [Cloud installation](docs/cloud-install.md)
 
+[![Deploy with Vercel](https://vercel.com/button)][deploy-vercel]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)][deploy-cloudflare]
+
 ![QiaoPage publishing workflow](docs/assets/hero.png)
 
 </div>
@@ -74,7 +77,12 @@ npm run install:cloudflare -- qiaopage
 npm run install:vercel -- qiaopage
 ```
 
-Official CLI installers provision or reuse resources and preserve credentials. You need your own platform account and must complete login, terms, and any billing activation yourself. Keep an existing installation's project name when upgrading. Cloudflare uses SQLite Durable Objects + private R2; Vercel uses Turso + private Blob. Browser deploy buttons are not yet verified; use the CLI paths. See [cloud instructions](docs/cloud-install.md).
+[![Deploy with Vercel](https://vercel.com/button)][deploy-vercel]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)][deploy-cloudflare]
+
+The official setup wizards clone the project into your account. Vercel preselects **Turso + private Blob**; Cloudflare provisions **Durable Objects + private R2** from Wrangler. Save your administrator secret and approve the platform resources. [Setup and first admin connection](docs/deploy-buttons.md) · [Verification scope](docs/verification.md#部署按钮).
+
+Official CLI installers provision or reuse resources and preserve credentials. You need your own platform account and must complete login, terms, and any billing activation yourself. Keep an existing installation's project name when upgrading. Cloudflare uses SQLite Durable Objects + private R2; Vercel uses Turso + private Blob. Browser buttons open the official setup wizards; a complete fresh-account browser installation is not yet verified. See [cloud instructions](docs/cloud-install.md).
 
 For local development: `npm ci`, `npm run setup`, `npm start`, then open [the local home](http://127.0.0.1:3000). Run `node bin/quickshare.js dashboard` in another terminal to get an administrator login link.
 
@@ -109,11 +117,11 @@ CLI 1.6 associates a source with its site: subsequent `publish` updates it, `upd
 - User HTML runs in an opaque sandbox. Management cookies, localStorage, and Service Workers are unavailable. Use relative asset paths.
 - Default SQLite uses a single instance and persistent storage. Never use an ephemeral filesystem for persistent data.
 - Code is ISC-licensed; hosting, domains, and storage may incur provider charges. There is no promise of permanent free hosting.
-- Installation currently builds from source. Prebuilt container images and browser deployment buttons are planned, not shipped.
+- Installation currently builds from source. Official deploy buttons are included; prebuilt container images are not yet provided.
 
 ## Verification and contributions
 
-56 automated tests and real Chrome desktop/390px acceptance checks passed for this launch. CI verifies Node, Docker, libSQL/MinIO, and native Workers. Both cloud deployments have passed upload, persistence, and recovery checks; see [verification scope](docs/verification.md).
+66 automated tests and real Chrome desktop/390px acceptance checks passed for this launch. CI verifies Node, Docker, libSQL/MinIO, and native Workers. Both cloud deployments have passed upload, persistence, and recovery checks; see [verification scope](docs/verification.md).
 
 ```sh
 npm run check
@@ -129,3 +137,6 @@ Contributions and reproducible installation feedback are welcome. Follow [CONTRI
 QiaoPage evolved from [Quickshare](https://github.com/joeseesun/quickshare), with an agent-first workflow inspired by [here.now](https://here.now/). Code retains the ISC license; bundled Geist and Noto Sans SC fonts retain SIL OFL licensing. See [NOTICE](NOTICE.md).
 
 Made and maintained by **[向阳乔木 / Joe](https://x.com/vista8)**. [Website](https://qiaomu.ai) · [Blog](https://blog.qiaomu.ai) · [Projects](https://tuijian.qiaomu.ai) · [GitHub](https://github.com/joeseesun/)
+
+[deploy-vercel]: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage&project-name=qiaopage&repository-name=qiaopage&env=QUICKSHARE_TOKEN&envDescription=Create+a+random+admin+secret+%28at+least+32+characters%29+and+save+it+privately.+See+the+setup+guide.&envLink=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage%2Fblob%2Fmain%2Fdocs%2Fdeploy-buttons.md&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22private%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22tursocloud%22%2C%22productSlug%22%3A%22database%22%2C%22protocol%22%3A%22storage%22%2C%22allowConnectExistingProduct%22%3Afalse%7D%5D&demo-title=QiaoPage&demo-description=Publish+from+your+agent.+Share+with+one+link.&demo-url=https%3A%2F%2Fquickshare-agent-test.vercel.app&demo-image=https%3A%2F%2Fraw.githubusercontent.com%2Fjoeseesun%2Fqiaopage%2Fmain%2Fdocs%2Fassets%2Fhero.png
+[deploy-cloudflare]: https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage

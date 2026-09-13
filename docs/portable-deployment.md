@@ -28,6 +28,6 @@ QiaoPage 从 Quickshare 演进而来，保留 API、CLI 和配置兼容，旧仓
 
 Cloudflare 的恢复使用数据库 PITR + 仍保留的不可变 R2 对象；Vercel 可完整导出为 SQLite + 文件并恢复到 Node / Docker。备份与恢复操作须覆盖账号、索引、历史和文件，不能只备份数据库。
 
-仓库按 ISC 许可开源。CLI 安装流程已实测；浏览器部署按钮尚未完成验收，因此不将它们列为可用入口。
+仓库按 ISC 许可开源。CLI 安装流程已实测；README 已提供官方部署按钮，配置方式和首次管理员接入见[按钮指南](deploy-buttons.md)。完整浏览器安装验收状态单独记录。
 
 依据：[Cloudflare SQLite 事务与 PITR](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)、[Node HTTP bridge](https://developers.cloudflare.com/workers/runtime-apis/nodejs/http/)、[Vercel 函数限制](https://vercel.com/docs/functions/limitations)、[私有 Blob SDK](https://vercel.com/docs/vercel-blob/using-blob-sdk)。

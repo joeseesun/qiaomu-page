@@ -1,0 +1,3 @@
+# Cloudflare Deploy button: supply a unique random secret, at least 32 characters.
+# Leave this example empty; never commit a real secret or a shared default.
+QUICKSHARE_TOKEN=

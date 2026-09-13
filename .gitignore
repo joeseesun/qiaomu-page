@@ -12,6 +12,7 @@ coverage/
 .vercel/
 .wrangler/
 .dev.vars*
+!.dev.vars.example
 
 .cloudflare-build/
 .agents/
