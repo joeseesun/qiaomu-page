@@ -145,6 +145,8 @@ const base = "http://127.0.0.1:39997",
     await friend.locator("#auth-form [name=password]").fill("qa-password-123456");
     await friend.getByRole("button", { name: "注册并开始使用" }).click();
     await friend.getByRole("heading", { name: "发布，然后分享" }).waitFor();
+    await friend.getByText("“发布这个网页到 QP”", { exact: true }).waitFor();
+    await friend.getByText("“下架这个作品”或“恢复刚才下架的作品”", { exact: true }).waitFor();
     const guest = await friend.evaluate(async () => (await (await fetch("/api/v1/me")).json()).member);
     assert.equal(guest.registered, true);
     await page.getByRole("button", {name:"朋友",exact:true}).click();
