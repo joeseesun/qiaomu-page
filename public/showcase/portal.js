@@ -54,14 +54,38 @@ async function api(url, method = "GET", body) {
   return data;
 }
 function toast(text) {
-  $("toast").textContent = text;
-  $("toast").classList.add("show");
+  const dialog = [...document.querySelectorAll("dialog[open]")].at(-1);
+  let target = $("toast");
+  if (dialog) {
+    target = dialog.querySelector(".dialog-toast");
+    if (!target) {
+      target = document.createElement("div");
+      target.className = "dialog-toast";
+      target.setAttribute("role", "status");
+      target.setAttribute("aria-live", "polite");
+      dialog.append(target);
+    }
+  }
+  if (toast.target && toast.target !== target) toast.target.classList.remove("show");
+  target.textContent = text;
+  target.classList.add("show");
+  toast.target = target;
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => $("toast").classList.remove("show"), 3000);
+  toast.timer = setTimeout(() => target.classList.remove("show"), 3000);
 }
-async function copy(value) {
+async function copy(value, trigger) {
   await navigator.clipboard.writeText(value);
-  toast("已复制");
+  if (trigger?.tagName === "BUTTON") {
+    const original = trigger.dataset.copyLabel || trigger.textContent;
+    trigger.dataset.copyLabel = original;
+    trigger.textContent = "已复制 ✓";
+    trigger.classList.add("copy-complete");
+    clearTimeout(trigger.copyTimer);
+    trigger.copyTimer = setTimeout(() => {
+      trigger.textContent = original;
+      trigger.classList.remove("copy-complete");
+    }, 1600);
+  } else toast("已复制");
 }
 function action(fn) {
   return async (event) => {
@@ -175,7 +199,7 @@ function renderWorks() {
     row.append(info);
     const actions = document.createElement("div");
     actions.className = "site-actions";
-    const share = button("复制链接", () => copy(w.url));
+    const share = button("复制链接", (event) => copy(w.url, event.currentTarget));
     share.disabled = !w.published;
     actions.append(
       share,
@@ -580,7 +604,7 @@ $("publish-form").onsubmit = async (e) => {
     $("publish-success").hidden = false;
     $("published-url").textContent = work.url;
     $("published-url").href = work.url;
-    $("copy-published").onclick = action(() => copy(work.url));
+    $("copy-published").onclick = action((event) => copy(work.url, event.currentTarget));
     await refresh();
     toast(work.published ? "已发布" : "草稿已更新，恢复发布后可访问");
   } catch (error) {
@@ -662,11 +686,22 @@ $("invite-form").onsubmit = action(async event => {
     await refreshMembers();
   } finally {submit.disabled = false;}
 });
-$("copy-invite").onclick = action(() => copy($("invite-url").value));
+$("copy-invite").onclick = action((event) => copy($("invite-url").value, event.currentTarget));
 $("copy-invite-prompt").onclick = action(copyInvitation);
 let accountState;
+function clearAccountStatus() {
+  $("account-status").hidden = true;
+  $("account-status-title").textContent = "";
+  $("account-status-detail").textContent = "";
+}
+function showAccountStatus(title, detail) {
+  $("account-status-title").textContent = title;
+  $("account-status-detail").textContent = detail;
+  $("account-status").hidden = false;
+}
 $("account-button").onclick = action(async () => {
   accountState = null;
+  clearAccountStatus();
   $("account-name").textContent = "正在读取账号…";
   $("password-form").hidden = true;
   $("key-result").hidden = true; $("key-value").value = "";
@@ -686,8 +721,15 @@ $("password-form").onsubmit = action(async (e) => {
   if (!accountState) return;
   const form = e.target, submit = $("account-save");
   const username = form.elements.username.value, password = form.elements.password.value;
-  if (username === accountState.username && !password) { toast("账号信息未改变"); return; }
+  const usernameChanged = username !== accountState.username;
+  if (!usernameChanged && !password) { toast("账号信息未改变"); return; }
+  clearAccountStatus();
+  clearTimeout(submit.completeTimer);
   submit.disabled = true;
+  submit.setAttribute("aria-busy", "true");
+  form.setAttribute("aria-busy", "true");
+  submit.textContent = "保存中…";
+  let completed = false;
   try {
     const data = await api("/api/v1/account", "PATCH", {revision:accountState.revision, ...(username !== accountState.username ? {username} : {}), ...(password ? {password} : {})});
     accountState = data.account;
@@ -696,9 +738,22 @@ $("password-form").onsubmit = action(async (e) => {
     form.elements.username.value = accountState.username;
     $("account-name").textContent = `#${accountState.id} · ${accountState.role === "admin" ? "管理员" : "普通成员"}`;
     $("greeting").textContent = accountState.username + " 的发布空间";
-    toast(password ? "密码已保存" : "用户名已保存");
-  } finally { submit.disabled = false; }
+    showAccountStatus(
+      password ? (usernameChanged ? "账号信息已更新" : "密码修改成功") : "用户名已更新",
+      password ? "当前页面仍可用，其他网页登录已退出；已连接的 Agent 不受影响。" : "作品、链接与 Agent 连接保持不变。",
+    );
+    completed = true;
+  } finally {
+    submit.disabled = false;
+    submit.removeAttribute("aria-busy");
+    form.removeAttribute("aria-busy");
+    submit.textContent = completed ? "已保存" : "保存账号";
+    if (completed) submit.completeTimer = setTimeout(() => {
+      submit.textContent = "保存账号";
+    }, 1600);
+  }
 });
+$("password-form").addEventListener("input", clearAccountStatus);
 $("new-key").onclick = action(async () => {
   if (
     !(await confirmAction(
@@ -711,7 +766,7 @@ $("new-key").onclick = action(async () => {
   $("key-value").value = token;
   $("key-result").hidden = false;
 });
-$("copy-key").onclick = action(() => copy($("key-value").value));
+$("copy-key").onclick = action((event) => copy($("key-value").value, event.currentTarget));
 $("logout").onclick = action(async () => {
   if (!member.registered && !(await confirmAction("退出发布空间？", "尚未设置登录账号。退出后，需要已连接的 Agent 帮你重新打开空间；也可以取消并先设置账号。"))) return;
   await api("/auth/logout", "POST", {});
@@ -723,6 +778,9 @@ document
 $("account-dialog").onclose = () => {
   $("key-value").value = "";
   $("password-form").reset();
+  clearTimeout($("account-save").completeTimer);
+  $("account-save").textContent = "保存账号";
+  clearAccountStatus();
 };
 $("invite-dialog").onclose = () => {
   $("invite-url").value = "";
