@@ -7,7 +7,7 @@ const { parseArgs } = require("node:util");
 const configPath =
   process.env.QUICKSHARE_CONFIG ||
   path.join(os.homedir(), ".config/quickshare/config.json");
-const CLI_VERSION = "1.10.0";
+const CLI_VERSION = "1.11.0";
 const { createHash, randomUUID } = require("node:crypto");
 let flags = {},
   args = [];
@@ -80,6 +80,7 @@ const help = `QiaoPage / Quickshare Agent CLI ${CLI_VERSION}
   Secrets only through stdin/private files, never command arguments.
 
 Publish FILE or DIRECTORY.
+  quickshare register --url URL    # create a personal space; no invitation required
   quickshare join --url URL --invite-stdin # activate an invitation, then finish account onboarding
   quickshare connect --url URL --code-stdin # connect an existing space
   quickshare dashboard  # one-use browser login link
@@ -238,6 +239,61 @@ async function main() {
     )
   )
     throw new Error("Share settings require the sharing command.");
+  if (command === "register") {
+    if (args.length !== 1 || !flags.url)
+      throw new Error("Usage: quickshare register --url URL");
+    const url = normalizeUrl(flags.url);
+    let config = fs.existsSync(configPath)
+      ? JSON.parse(fs.readFileSync(configPath, "utf8"))
+      : null;
+    if (config && config.url !== url)
+      throw new Error(
+        "A different server is configured. Use a separate QUICKSHARE_CONFIG path.",
+      );
+    if (config && !config.pending) {
+      try {
+        const result = await request(config, "/api/v1/me");
+        return console.log(
+          flags.json
+            ? JSON.stringify(result)
+            : "Already connected. Existing configuration preserved.",
+        );
+      } catch (error) {
+        if (error.status !== 401) throw error;
+        const backup =
+          configPath +
+          ".revoked-" +
+          require("node:crypto").randomBytes(6).toString("hex");
+        fs.writeFileSync(backup, fs.readFileSync(configPath), {
+          mode: 0o600,
+          flag: "wx",
+        });
+        config = null;
+      }
+    }
+    if (!config) {
+      config = {
+        url,
+        token: require("node:crypto").randomBytes(32).toString("hex"),
+        pending: true,
+      };
+      saveConfig(config);
+    }
+    await request(config, "/auth/register", "POST", { apiToken: config.token });
+    delete config.pending;
+    saveConfig(config);
+    const result = await request(config, "/api/v1/me");
+    result.onboarding = {
+      required: true,
+      next: "Ask the user only for a username, then run account --username NAME --generate-password --output PRIVATE_NEW_FILE --json.",
+      password: "The CLI saves the initial password in a private mode-600 file. Link that file without displaying its contents.",
+    };
+    return console.log(
+      flags.json
+        ? JSON.stringify(result)
+        : "Connected. Ask only for a username, then generate the initial password into a private file with the account command.",
+    );
+  }
   if (command === "join" || command === "connect") {
     const isInvite = command === "join";
     if (

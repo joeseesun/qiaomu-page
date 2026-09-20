@@ -23,7 +23,7 @@ You made something with AI. Now send someone a link.
 
 Install QiaoPage on your own infrastructure, copy its setup prompt into your agent, and ask it to publish a file or static build folder. Later, ask it to update that site: the URL stays the same. Web, CLI, and agents manage the same content.
 
-Invite friends with an individual prompt. Each invitation creates a separate member identity and publishing space. On first connection, the Agent asks only for a username; the CLI generates a 12-character initial password in a private local file, and the user can replace it later in Account Settings. The live demo lets anyone browse the home and sample sites. Publishing requires an invitation from that instance's administrator or your own installation.
+Anyone can create a separate member identity and publishing space without an invitation. On first connection, the Agent asks only for a username; the CLI generates a 12-character initial password in a private local file, and the user can replace it later in Account Settings.
 
 | Capability | Result |
 | --- | --- |

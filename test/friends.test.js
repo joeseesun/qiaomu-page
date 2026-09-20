@@ -497,9 +497,10 @@ test("public agent setup uses the configured origin without credentials or publi
   assert.equal(promptResponse.status, 200);
   const prompt = await promptResponse.text();
   assert.ok(prompt.includes(origin + "/skill.md"));
-  assert.ok(prompt.includes("本次不自动上传文件"));
-  assert.ok(prompt.includes("只询问我想要的用户名"));
-  assert.ok(prompt.includes("12 位"));
+  assert.ok(prompt.includes("直接注册新的个人空间"));
+  assert.ok(prompt.includes("本次只完成接入，不发布内容"));
+  assert.ok(prompt.includes("新空间只问我用户名"));
+  assert.ok(prompt.includes("不需要邀请码"));
   for (const endpoint of ["/", "/publish"]) {
     const response = await call(endpoint);
     assert.equal(response.status, 200);

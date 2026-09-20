@@ -731,21 +731,22 @@ $("invite-dialog").onclose = () => {
 };
 function authMode(mode) {
   const joining = mode === "invite";
+  const registering = mode === "register" || joining;
   $("auth-form").dataset.mode = mode;
-  $("auth-title").textContent = joining ? "注册你的发布空间" : "欢迎回来";
+  $("auth-title").textContent = registering ? "注册你的发布空间" : "欢迎回来";
   $("join-field").hidden = !joining;
   $("join-code").required = joining;
   $("auth-credentials").hidden = false;
   for (const name of ["username", "password"]) $("auth-form").elements[name].required = true;
-  $("auth-form").elements.password.autocomplete = joining ? "new-password" : "current-password";
+  $("auth-form").elements.password.autocomplete = registering ? "new-password" : "current-password";
   $("invite-agent").hidden = !joining;
-  $("auth-submit").textContent = joining ? "注册并开始使用" : "登录";
-  $("auth-switch").textContent = joining ? "已有账号？登录" : "有邀请码？注册空间";
+  $("auth-submit").textContent = registering ? "注册并开始使用" : "登录";
+  $("auth-switch").textContent = registering ? "已有账号？登录" : "没有账号？直接注册";
   $("auth-error").textContent = "";
 }
 $("login-button").onclick = () => { authMode("login"); $("auth-dialog").showModal(); };
-$("join-button").onclick = () => { authMode("invite"); $("auth-dialog").showModal(); };
-$("auth-switch").onclick = () => authMode($("auth-form").dataset.mode === "login" ? "invite" : "login");
+$("join-button").onclick = () => { authMode("register"); $("auth-dialog").showModal(); };
+$("auth-switch").onclick = () => authMode($("auth-form").dataset.mode === "login" ? "register" : "login");
 function readInvitation() {
   let code = $("join-code").value.trim();
   if (code.includes("://")) {
@@ -775,7 +776,13 @@ async function start() {
   if (!member) {
     $("join-button").hidden = false;
     $("join-code").value = inviteCode || "";
-    authMode(inviteCode || location.pathname === "/join" ? "invite" : "login");
+    authMode(
+      inviteCode || location.pathname === "/join"
+        ? "invite"
+        : ["/login", "/dashboard"].includes(location.pathname)
+          ? "login"
+          : "register",
+    );
     if (inviteCode || ["/login", "/join", "/dashboard"].includes(location.pathname)) $("auth-dialog").showModal();
     return;
   }
@@ -802,8 +809,9 @@ $("auth-form").onsubmit = async (e) => {
   b.disabled = true;
   $("auth-error").textContent = "";
   try {
-    const joining = $("auth-form").dataset.mode === "invite";
-    await api(joining ? "/auth/join" : "/auth/login", "POST", {
+    const mode = $("auth-form").dataset.mode;
+    const joining = mode === "invite";
+    await api(joining ? "/auth/join" : mode === "register" ? "/auth/register" : "/auth/login", "POST", {
       username: e.target.elements.username.value,
       password: e.target.elements.password.value,
       ...(joining ? { invite: readInvitation() } : {}),

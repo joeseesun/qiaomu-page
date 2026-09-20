@@ -2,7 +2,7 @@
   "name": "qiaopage",
   "version": "3.1.0",
   "private": true,
-  "description": "面向 Agent 的邀请制网站发布服务 | Agent-first, invitation-only web publishing",
+  "description": "面向 Agent 的网站发布服务 | Agent-first web publishing",
   "main": "server.js",
   "bin": {
     "quickshare": "bin/quickshare.js"

@@ -48,6 +48,27 @@ test("guest invitations require permission, are single-use, and later registrati
   assert.equal((await call("/auth/login",{username:"guestqa",password:"guest-password-12345"},null)).status,200);
   assert.equal((await call("/api/v1/password",{username:"changedname",password:"guest-password-12345"},a.apiToken)).status,200);
 });
+test("open registration creates isolated browser and Agent spaces without invitations",async t => {
+  const {call,db,url}=await fixture(t);
+  assert.equal((await call("/auth/register",{username:"blocked",password:"strong-password-123"},null,"https://other.example")).status,403);
+  const browser=await call("/auth/register",{username:"openuser",password:"strong-password-123"},null);
+  assert.equal(browser.status,201,await browser.clone().text());
+  const cookie=browser.headers.get("set-cookie").split(";")[0];
+  const browserMember=(await (await fetch(url+"/api/v1/me",{headers:{Cookie:cookie}})).json()).member;
+  assert.equal(browserMember.username,"openuser");
+  assert.equal(browserMember.registered,true);
+  assert.equal(browserMember.admin,false);
+  assert.equal((await call("/auth/register",{username:"openuser",password:"another-password-123"},null)).status,409);
+
+  const apiToken=key();
+  const agent=await call("/auth/register",{apiToken},apiToken);
+  assert.equal(agent.status,201,await agent.clone().text());
+  const agentMember=(await (await call("/api/v1/me",undefined,apiToken)).json()).member;
+  assert.equal(agentMember.registered,false);
+  assert.equal(agentMember.admin,false);
+  assert.equal((await call("/auth/register",{apiToken},apiToken)).status,200);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM members").get().n,3);
+});
 test("Agent pairing preserves space, retries safely, hashes secrets and revokes old connections",async t => {
   const {call,accept,db,url}=await fixture(t);
   const a=await accept();
@@ -113,6 +134,27 @@ test("downloaded CLI redeems invitation through stdin, retains private config an
   const backup=fs.readdirSync(path.dirname(config)).find(name=>name.startsWith("config.json.revoked-"));
   assert.ok(backup);assert.equal(fs.statSync(path.join(path.dirname(config),backup)).mode&0o777,0o600);
   assert.equal(JSON.parse(fs.readFileSync(path.join(path.dirname(config),backup))).token,saved.token);
+});
+test("downloaded CLI registers without an invitation and preserves retryable private state",async t => {
+  const {call,url}=await fixture(t);
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),"qs-open-cli-"));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const cli=path.join(dir,"quickshare.js"),config=path.join(dir,"private/config.json");
+  fs.writeFileSync(cli,await (await call("/client/quickshare.js")).text());
+  const run=(args)=>new Promise(resolve=>{
+    const child=spawn(process.execPath,[cli,...args],{cwd:dir,env:{...process.env,QUICKSHARE_CONFIG:config,QUICKSHARE_URL:"",QUICKSHARE_TOKEN:""}});let stdout="",stderr="";
+    child.stdout.on("data",x=>stdout+=x);child.stderr.on("data",x=>stderr+=x);child.on("close",code=>resolve({code,stdout,stderr}));
+  });
+  const registered=await run(["register","--url",url]);
+  assert.equal(registered.code,0,registered.stderr);
+  assert.match(registered.stdout,/Ask only for a username/);
+  const saved=JSON.parse(fs.readFileSync(config));
+  assert.equal(saved.pending,undefined);
+  assert.equal(fs.statSync(config).mode&0o777,0o600);
+  assert.ok(!registered.stdout.includes(saved.token));
+  const repeated=await run(["register","--url",url]);
+  assert.equal(repeated.code,0,repeated.stderr);
+  assert.match(repeated.stdout,/Already connected/);
+  assert.equal(JSON.parse(fs.readFileSync(config)).token,saved.token);
 });
 test("expired, revoked and legacy invitations and connection limits retain their boundaries",async t=>{
   const {call,db,invite,accept}=await fixture(t);
