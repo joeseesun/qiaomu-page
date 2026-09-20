@@ -7,7 +7,7 @@ const { parseArgs } = require("node:util");
 const configPath =
   process.env.QUICKSHARE_CONFIG ||
   path.join(os.homedir(), ".config/quickshare/config.json");
-const CLI_VERSION = "1.8.0";
+const CLI_VERSION = "1.9.0";
 const { createHash, randomUUID } = require("node:crypto");
 let flags = {},
   args = [];
@@ -60,6 +60,7 @@ const [command = "status", target, file] = args;
 const help = `QiaoPage / Quickshare Agent CLI ${CLI_VERSION}
   quickshare whoami --json        # live identity, connection, permissions and usage
   quickshare capabilities --json  # live tools, limits, defaults and boundaries
+  quickshare check SOURCE --json  # sandbox compatibility before publishing
   quickshare account [--username NAME] [--password-stdin]
   quickshare account [--username NAME] --generate-password --output PRIVATE_NEW_FILE # 12-character initial password
   quickshare account --verify-password-stdin
@@ -221,6 +222,13 @@ async function main() {
   if (flags.preview && command !== "sharing")
     throw new Error("--preview requires sharing.");
   if (flags.help || !command || command === "help") return console.log(help);
+  if (command === "check") {
+    if (!target) throw new Error("Usage: quickshare check SOURCE");
+    const report = compatibilityReport(path.resolve(target));
+    console.log(flags.json ? JSON.stringify(report, null, 2) : formatCompatibility(report));
+    if (!report.ok) process.exitCode = 2;
+    return;
+  }
   if (
     command !== "sharing" &&
     ["share-enabled", "indexable", "remove-cover"].some(
@@ -1264,6 +1272,54 @@ function fallbackTitle(file) {
   if (/^(?:build|dist|out|public|site|www)$/i.test(base))
     base = path.basename(path.dirname(file));
   return base.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+}
+function compatibilityReport(source) {
+  if (!fs.existsSync(source)) throw new Error("Source does not exist: " + source);
+  const findings = [];
+  const files = [];
+  const walk = (full) => {
+    const info = fs.lstatSync(full);
+    if (info.isSymbolicLink()) return;
+    if (info.isDirectory()) {
+      for (const name of fs.readdirSync(full)) {
+        if (/^(?:\..*|node_modules)$/.test(name)) continue;
+        walk(path.join(full, name));
+      }
+      return;
+    }
+    if (info.isFile() && /\.(?:html?|m?js|cjs)$/i.test(full)) files.push(full);
+  };
+  walk(source);
+  const rules = [
+    ["browser-storage", /\b(?:localStorage|sessionStorage|indexedDB)\b/g, "warning", "Browser storage requires an isolated content origin; guard access with try/catch for legacy sandbox links."],
+    ["service-worker", /\bserviceWorker\s*\.\s*register\b/g, "error", "Service Workers are not supported by QiaoPage publishing."],
+    ["host-cookie", /\bdocument\s*\.\s*cookie\b/g, "error", "Published pages cannot depend on management-site cookies."],
+    ["top-navigation", /\b(?:window\s*\.\s*)?top\s*\.\s*location\b/g, "error", "Top-level navigation is blocked by the publication sandbox."],
+    ["management-api", /fetch\s*\(\s*["'`]\/(?:api|auth)\//g, "error", "Published pages cannot call authenticated management APIs."],
+  ];
+  for (const file of files) {
+    const text = fs.readFileSync(file, "utf8");
+    for (const [code, pattern, severity, message] of rules) {
+      for (const match of text.matchAll(pattern)) {
+        const line = text.slice(0, match.index).split("\n").length;
+        findings.push({ code, severity, file: path.relative(source, file) || path.basename(file), line, message });
+      }
+    }
+  }
+  return {
+    ok: !findings.some((item) => item.severity === "error"),
+    source,
+    filesChecked: files.length,
+    findings,
+    guidance: findings.length ? "Review findings, test the preview under the production sandbox, then publish." : "No known sandbox compatibility risks found.",
+  };
+}
+function formatCompatibility(report) {
+  const lines = [`${report.ok ? "PASS" : "FAIL"}: checked ${report.filesChecked} files`];
+  for (const item of report.findings)
+    lines.push(`${item.severity.toUpperCase()} ${item.code} ${item.file}:${item.line} — ${item.message}`);
+  lines.push(report.guidance);
+  return lines.join("\n");
 }
 async function request(config, endpoint, method = "GET", body) {
   const serialized = body ? JSON.stringify(body) : undefined;

@@ -107,7 +107,9 @@ node quickshare.js account --json
 
 Replace `RETURNED_SLUG` with the actual publication result. Without an explicit configured instance, the CLI stops instead of sending credentials to another server. The `quickshare` command, `qiaomu-quickshare` Skill ID, environment variables, and private configuration paths are retained for compatibility with existing Quickshare installations. No data migration is needed for the rebrand.
 
-CLI 1.8 selects a clean work title on first publication: explicit `--title`, then the source HTML `<title>`, first `<h1>`, or Markdown level-one heading, and only then a humanized source name. Updates preserve the existing work title unless a new `--title` is explicit. This changes QiaoPage metadata only; it never rewrites HTML, Markdown, or build output, and it never derives or changes the account username from published content.
+CLI 1.9 selects a clean work title on first publication: explicit `--title`, then the source HTML `<title>`, first `<h1>`, or Markdown level-one heading, and only then a humanized source name. Updates preserve the existing work title unless a new `--title` is explicit. This changes QiaoPage metadata only; it never rewrites HTML, Markdown, or build output, and it never derives or changes the account username from published content. Run `node quickshare.js check SOURCE --json` before publishing to detect sandbox compatibility risks.
+
+Instances may configure `CONTENT_ORIGIN_TEMPLATE=https://{label}.pages.example.com` so public works use an origin separate from the management site. New labels combine the username, work title, and a collision-resistant suffix, then remain stable across renames and updates. Legacy `/s/slug` links remain valid; private and restricted links retain the stricter opaque sandbox.
 
 CLI 1.6 associates a source with its site: subsequent `publish` updates it, `update` requires an existing association, and `publish --new` creates another site. Attach legacy sources first with `link SLUG SOURCE`. Keep share receipts outside the upload tree. See [CLI and access design](docs/cli-and-access.md).
 
@@ -116,7 +118,7 @@ CLI 1.6 associates a source with its site: subsequent `publish` updates it, `upd
 - Static hosting only; no server-side execution. Build frontend apps locally and publish their static output.
 - Up to 100 files / 8 MiB total per upload, 5 MiB per file, and 100 sites per member. Large uploads are chunked automatically.
 - Access defaults to public-by-link, independently of gallery visibility. Choose owner-only or revocable, expiring read-only links through the Agent/CLI. Share links can be forwarded.
-- User HTML runs in an opaque sandbox. Management cookies, localStorage, and Service Workers are unavailable. Use relative asset paths.
+- Management cookies/APIs and Service Workers are always unavailable. Without a content-origin template, user HTML remains in an opaque sandbox; configured public content origins get only their own origin-scoped localStorage. Use relative asset paths.
 - Default SQLite uses a single instance and persistent storage. Never use an ephemeral filesystem for persistent data.
 - Code is ISC-licensed; hosting, domains, and storage may incur provider charges. There is no promise of permanent free hosting.
 - Installation currently builds from source. Official deploy buttons are included; prebuilt container images are not yet provided.

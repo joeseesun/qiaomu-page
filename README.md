@@ -209,7 +209,9 @@ node quickshare.js account --json
 
 `RETURNED_SLUG` 用发布时返回的实际值替换。未配置实例地址时，CLI 会停止并提示登录，不会连接到别人的服务。QiaoPage 保留 `quickshare` CLI、`qiaomu-quickshare` Skill 与旧配置标识，已有连接无需重建。见[品牌与兼容性](docs/branding.md)。
 
-CLI 1.8 会在首次发布时自动选择良好的作品标题：`--title` 优先，否则读取 HTML `<title>`、首个 `<h1>` 或 Markdown 一级标题，最后才使用经过整理的源文件名。更新时保留已有作品标题，除非明确传入新的 `--title`。这些都只是 QiaoPage 元数据，不会改写原始 HTML、Markdown 或构建产物；账号用户名也不会从作品推导或修改。
+CLI 1.9 会在首次发布时自动选择良好的作品标题：`--title` 优先，否则读取 HTML `<title>`、首个 `<h1>` 或 Markdown 一级标题，最后才使用经过整理的源文件名。更新时保留已有作品标题，除非明确传入新的 `--title`。这些都只是 QiaoPage 元数据，不会改写原始 HTML、Markdown 或构建产物；账号用户名也不会从作品推导或修改。发布前可运行 `node quickshare.js check SOURCE --json` 检查浏览器存储、Service Worker、Cookie、顶层跳转和管理 API 等运行兼容性风险。
+
+实例可配置 `CONTENT_ORIGIN_TEMPLATE=https://{label}.pages.example.com`，把公开作品放在与管理站分离的独立 origin。新作品会按“用户名 + 作品名 + 防冲突短码”推荐并固定地址；改用户名、改标题和更新内容都不会换链接。旧 `/s/slug` 仍是稳定入口，私密和受限链接继续使用更严格的 opaque sandbox。不要在管理域的 `/s/*` 上直接开启 `allow-same-origin`。
 
 直接对 Agent 说：「更新到 qp」「另建一个网站」「设为仅自己可见」「生成一个 7 天有效的分享链接」「撤销给小王的链接」。
 
@@ -234,7 +236,7 @@ flowchart LR
   F --> G[隔离运行的静态网页]
 ```
 
-文件先写入不可变对象，再用事务更新索引。分享链接经过发布状态检查，用户 HTML 运行于独立的 opaque sandbox。网页会话与 Agent 使用不同的凭据机制，普通成员只能管理自己的内容。
+文件先写入不可变对象，再用事务更新索引。分享链接经过发布状态检查；旧入口与受限内容运行于 opaque sandbox，配置独立内容域后，公开作品可在独立 origin 使用浏览器本地存储。网页会话与 Agent 使用不同的凭据机制，普通成员只能管理自己的内容。
 
 [架构说明](docs/portable-deployment.md) · [存储与迁移](docs/storage.md) · [安全策略](SECURITY.md)
 
@@ -243,7 +245,7 @@ flowchart LR
 - **静态发布**：不运行后端 Node、Python、PHP，也不托管数据库型应用。前端项目先构建，再上传静态产物。
 - **内容大小**：每次最多 100 个文件 / 8 MiB，单文件最多 5 MiB，每位成员最多 100 个站点。大文件自动分块上传。
 - **访问权限**：默认凭普通链接访问、不进入展厅。可通过 Agent 改为「仅自己」或「受限链接」，并设置分享链接的有效期与撤销。受限链接可被转发。
-- **网页隔离**：不开放管理站 Cookie / localStorage、Service Worker；静态资源建议使用相对路径。
+- **网页隔离**：任何作品都不开放管理站 Cookie、管理 API 或 Service Worker。未配置内容域时 localStorage 不可用；配置独立内容域后，公开作品只获得自己 origin 的 localStorage。静态资源建议使用相对路径。
 - **运行成本**：开源代码使用 ISC 许可；云平台、域名与存储费用由部署者承担，免费额度以各平台当前规则为准。
 - **发布形态**：目前从源码安装，尚未提供预构建容器镜像。默认 SQLite 使用单实例和持久卷。
 
@@ -270,6 +272,7 @@ flowchart LR
 npm run check
 npm test
 npm run verify:ui          # 需要 Chrome
+npm run verify:published -- https://your-public-work.example/ # 真实渲染、脚本错误与桌面/手机溢出
 npm run verify:docker     # 需要 Docker
 npm run verify:backends   # libSQL + MinIO 集成验收
 npm run verify:cloudflare # 本地原生 Workers 验收

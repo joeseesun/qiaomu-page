@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
+const http = require("node:http");
 const { createApp } = require("../server");
 const token = "test-only-token-".repeat(4);
 async function fixture(t) {
@@ -165,6 +166,68 @@ test("validation, HTML sandbox, safe metadata and download", async (t) => {
     /^attachment/,
   );
   assert.doesNotMatch(await (await call("/sitemap.xml")).text(), /\/(w|s)\/demo/);
+});
+
+test("isolated content origins are stable, username-based and keep management sandbox opaque", async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qiaopage-origin-test-"));
+  const runtime = await createApp({
+    token,
+    dbPath: path.join(dir, "test.sqlite"),
+    baseUrl: "https://www.example.test",
+    contentOriginTemplate: "https://{label}.pages.example.test",
+  });
+  const server = await new Promise((resolve) => {
+    const s = runtime.app.listen(0, "127.0.0.1", () => resolve(s));
+  });
+  const local = `http://127.0.0.1:${server.address().port}`;
+  t.after(() => new Promise((resolve) => server.close(() => {
+    runtime.db.close();
+    fs.rmSync(dir, { recursive: true });
+    resolve();
+  })));
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const created = await fetch(local + "/api/v1/works", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ ...sample, requestId: "origin-test-request-0001" }),
+  });
+  assert.equal(created.status, 201);
+  const work = (await created.json()).work;
+  assert.match(work.content_label, /^owner-site-/);
+  assert.equal(work.contentUrl, `https://${work.content_label}.pages.example.test/`);
+  assert.equal(work.url, work.contentUrl);
+  assert.equal(work.legacyUrl, `https://www.example.test/s/${work.slug}/`);
+
+  const isolated = await new Promise((resolve, reject) => {
+    const request = http.request(local + "/", { headers: { Host: `${work.content_label}.pages.example.test` } }, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => (body += chunk));
+      response.on("end", () => resolve({ status: response.statusCode, headers: response.headers, body }));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+  assert.equal(isolated.status, 200);
+  assert.match(isolated.headers["content-security-policy"], /allow-same-origin/);
+  assert.match(isolated.headers["permissions-policy"], /camera=\(\)/);
+  assert.match(isolated.body, /Try/);
+
+  const legacy = await fetch(local + `/s/${work.slug}/`, {
+    redirect: "manual",
+    headers: { "sec-fetch-dest": "document" },
+  });
+  assert.equal(legacy.status, 302);
+  assert.equal(legacy.headers.get("location"), work.contentUrl);
+
+  const asset = await fetch(local + `/s/${work.slug}/`);
+  assert.doesNotMatch(asset.headers.get("content-security-policy"), /allow-same-origin/);
+  const suggestions = await fetch(local + "/api/v1/content-origins/suggestions?title=My%20Tool", { headers });
+  assert.equal(suggestions.status, 200);
+  const suggested = await suggestions.json();
+  assert.equal(suggested.enabled, true);
+  assert.equal(suggested.suggestions.length, 3);
+  assert.ok(suggested.suggestions.every((item) => item.label.startsWith("owner-my-tool-")));
 });
 test("CLI publishes, updates, exports and preserves private login credentials", async (t) => {
   const { url, dir, call } = await fixture(t);
