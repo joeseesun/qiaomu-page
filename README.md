@@ -209,6 +209,8 @@ node quickshare.js account --json
 
 `RETURNED_SLUG` 用发布时返回的实际值替换。未配置实例地址时，CLI 会停止并提示登录，不会连接到别人的服务。QiaoPage 保留 `quickshare` CLI、`qiaomu-quickshare` Skill 与旧配置标识，已有连接无需重建。见[品牌与兼容性](docs/branding.md)。
 
+CLI 1.8 会在首次发布时自动选择良好的作品标题：`--title` 优先，否则读取 HTML `<title>`、首个 `<h1>` 或 Markdown 一级标题，最后才使用经过整理的源文件名。更新时保留已有作品标题，除非明确传入新的 `--title`。这些都只是 QiaoPage 元数据，不会改写原始 HTML、Markdown 或构建产物；账号用户名也不会从作品推导或修改。
+
 直接对 Agent 说：「更新到 qp」「另建一个网站」「设为仅自己可见」「生成一个 7 天有效的分享链接」「撤销给小王的链接」。
 
 项目关联、错误恢复、访问模式与升级注意事项见[CLI 与分享权限](docs/cli-and-access.md)。分享文件包含只读访问地址，应保存在发布目录之外。
