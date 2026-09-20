@@ -1,11 +1,12 @@
 {
-  "name": "qiaopage",
+  "name": "qiaomu-page",
   "version": "3.1.0",
   "private": true,
-  "description": "面向 Agent 的邀请制网站发布服务 | Agent-first, invitation-only web publishing",
+  "description": "面向 Agent 的网站发布服务 | Agent-first web publishing",
   "main": "server.js",
   "bin": {
-    "quickshare": "bin/quickshare.js"
+    "qiaomu-page": "bin/qiaomu-page.js",
+    "quickshare": "bin/qiaomu-page.js"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -54,7 +55,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/joeseesun/qiaopage.git"
+    "url": "https://github.com/joeseesun/qiaomu-page.git"
   },
   "author": "向阳乔木",
   "devDependencies": {

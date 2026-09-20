@@ -1,11 +1,13 @@
 "use strict";
 const fs = require("node:fs");
 const [command, file] = process.argv.slice(2);
-const base = process.env.QUICKSHARE_URL,
-  token = process.env.QUICKSHARE_RECOVERY_TOKEN;
+const base = process.env.QIAOMU_PAGE_URL || process.env.QUICKSHARE_URL,
+  token =
+    process.env.QIAOMU_PAGE_RECOVERY_TOKEN ||
+    process.env.QUICKSHARE_RECOVERY_TOKEN;
 if (!base || !token || !["checkpoint", "restore"].includes(command) || !file)
   throw new Error(
-    "Set QUICKSHARE_URL and QUICKSHARE_RECOVERY_TOKEN; use checkpoint FILE or restore FILE",
+    "Set QIAOMU_PAGE_URL and QIAOMU_PAGE_RECOVERY_TOKEN; use checkpoint FILE or restore FILE",
   );
 const call = (route, body) =>
   fetch(base + route, {

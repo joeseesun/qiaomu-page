@@ -3,9 +3,11 @@ const fs = require("fs"),
   path = require("path"),
   { spawn } = require("child_process"),
   assert = require("assert/strict");
-const state = JSON.parse(fs.readFileSync(process.env.QUICKSHARE_TEST_STATE)),
-  base = process.env.QUICKSHARE_URL;
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qs-large-"));
+const statePath =
+    process.env.QIAOMU_PAGE_TEST_STATE || process.env.QUICKSHARE_TEST_STATE,
+  state = JSON.parse(fs.readFileSync(statePath)),
+  base = process.env.QIAOMU_PAGE_URL || process.env.QUICKSHARE_URL;
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qiaomu-page-large-"));
 (async () => {
   const site = path.join(dir, "site");
   fs.mkdirSync(site);
@@ -23,7 +25,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qs-large-"));
   const child = spawn(
     process.execPath,
     [
-      "bin/quickshare.js",
+      "bin/qiaomu-page.js",
       "publish",
       site,
       "--title",
@@ -33,8 +35,8 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qs-large-"));
     {
       env: {
         ...process.env,
-        QUICKSHARE_CONFIG: config,
-        QUICKSHARE_TOKEN: state.guest,
+        QIAOMU_PAGE_CONFIG: config,
+        QIAOMU_PAGE_TOKEN: state.guest,
       },
     },
   );

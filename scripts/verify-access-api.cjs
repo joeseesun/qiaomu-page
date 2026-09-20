@@ -3,8 +3,9 @@
 const fs = require("node:fs"),
   assert = require("node:assert/strict");
 const { randomBytes, randomUUID } = require("node:crypto");
-const base = process.env.QUICKSHARE_URL;
-const statePath = process.env.QUICKSHARE_TEST_STATE;
+const base = process.env.QIAOMU_PAGE_URL || process.env.QUICKSHARE_URL;
+const statePath =
+  process.env.QIAOMU_PAGE_TEST_STATE || process.env.QUICKSHARE_TEST_STATE;
 if (!base || !statePath)
   throw new Error("Dedicated deployment test state is required");
 const state = JSON.parse(fs.readFileSync(statePath));

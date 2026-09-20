@@ -1,6 +1,6 @@
 <div align="center">
 
-# QiaoPage
+# Qiaomu Page
 
 **From your agent. To the web.**
 
@@ -13,7 +13,7 @@ Turn agent-created HTML, Markdown, and static folders into links you can keep up
 [![Deploy with Vercel](https://vercel.com/button)][deploy-vercel]
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)][deploy-cloudflare]
 
-![QiaoPage publishing workflow](docs/assets/hero.png)
+![Qiaomu Page publishing workflow](docs/assets/hero.png)
 
 </div>
 
@@ -21,9 +21,9 @@ Turn agent-created HTML, Markdown, and static folders into links you can keep up
 
 You made something with AI. Now send someone a link.
 
-Install QiaoPage on your own infrastructure, copy its setup prompt into your agent, and ask it to publish a file or static build folder. Later, ask it to update that site: the URL stays the same. Web, CLI, and agents manage the same content.
+Install Qiaomu Page on your own infrastructure, copy its setup prompt into your agent, and ask it to publish a file or static build folder. Later, ask it to update that site: the URL stays the same. Web, CLI, and agents manage the same content.
 
-Invite friends with an individual prompt. Each invitation creates a separate member identity and publishing space. On first connection, the Agent asks only for a username; the CLI generates a 12-character initial password in a private local file, and the user can replace it later in Account Settings. The live demo lets anyone browse the home and sample sites. Publishing requires an invitation from that instance's administrator or your own installation.
+Anyone can create a separate member identity and publishing space without an invitation. On first connection, the Agent asks only for a username; the CLI generates a 12-character initial password in a private local file, and the user can replace it later in Account Settings.
 
 | Capability | Result |
 | --- | --- |
@@ -47,8 +47,8 @@ Each demo is published byte-for-byte from [examples/](examples/). The Chinese RE
 Requires Docker and Compose v2. No host Node.js installation is needed. Initial build time depends on your network and machine.
 
 ```sh
-git clone https://github.com/joeseesun/qiaopage.git
-cd qiaopage
+git clone https://github.com/joeseesun/qiaomu-page.git
+cd qiaomu-page
 
 docker run --rm --user "$(id -u):$(id -g)" \
   -v "$PWD:/workspace" -w /workspace \
@@ -61,7 +61,7 @@ Open [the local home](http://127.0.0.1:8090). Generate a private, one-use admini
 
 ```sh
 docker compose --env-file .env.docker exec -T quickshare \
-  node bin/quickshare.js dashboard --url http://127.0.0.1:3000
+  node bin/qiaomu-page.js dashboard --url http://127.0.0.1:3000
 ```
 
 There is no default password. Keep the generated `.env.docker` administrator secret private. Public installations require HTTPS and an exact `BASE_URL`. Persistent volumes retain data across container rebuilds. See [Docker installation and backups](DOCKER_INSTALL.md).
@@ -72,9 +72,9 @@ From a cloned repository, with Node.js 24+:
 
 ```sh
 npm ci --ignore-scripts
-npm run install:cloudflare -- qiaopage
+npm run install:cloudflare -- qiaomu-page
 # OR
-npm run install:vercel -- qiaopage
+npm run install:vercel -- qiaomu-page
 ```
 
 [![Deploy with Vercel](https://vercel.com/button)][deploy-vercel]
@@ -84,30 +84,30 @@ The official setup wizards clone the project into your account. Vercel preselect
 
 Official CLI installers provision or reuse resources and preserve credentials. You need your own platform account and must complete login, terms, and any billing activation yourself. Keep an existing installation's project name when upgrading. Cloudflare uses SQLite Durable Objects + private R2; Vercel uses Turso + private Blob. Browser buttons open the official setup wizards; a complete fresh-account browser installation is not yet verified. See [cloud instructions](docs/cloud-install.md).
 
-For local development: `npm ci`, `npm run setup`, `npm start`, then open [the local home](http://127.0.0.1:3000). Run `node bin/quickshare.js dashboard` in another terminal to get an administrator login link.
+For local development: `npm ci`, `npm run setup`, `npm start`, then open [the local home](http://127.0.0.1:3000). Run `node bin/qiaomu-page.js dashboard` in another terminal to get an administrator login link.
 
 ## Agent and CLI usage
 
 Copy the prompt from your instance or use your personal invitation prompt. Your agent reads that server's `/skill.md`, installs the standalone CLI, redeems the code through stdin, and stores credentials privately. Setup does not publish any files automatically.
 
-Natural-language requests accept **QiaoPage**, **Quickshare**, **qp/QP**, and **qs/QS** interchangeably (for example, “发布到 qp”). Reuse the existing Skill and publishing profile. These are conversation aliases; terminal commands remain unchanged.
+The product name is **Qiaomu Page** and its conversation shorthand is **QP** (for example, “发布到 QP”). Legacy Quickshare and QS wording is recognized only to preserve existing connections.
 
 After connecting, use the installed CLI path:
 
 ```sh
-node quickshare.js whoami --json
-node quickshare.js publish ./dist
-node quickshare.js update ./dist
-node quickshare.js publish ./dist --new
-node quickshare.js access RETURNED_SLUG --mode link
-node quickshare.js share RETURNED_SLUG --name Friend --expires 7d --output ./private-share.json
-node quickshare.js list --json
-node quickshare.js account --json
+node qiaomu-page.js whoami --json
+node qiaomu-page.js publish ./dist
+node qiaomu-page.js update ./dist
+node qiaomu-page.js publish ./dist --new
+node qiaomu-page.js access RETURNED_SLUG --mode link
+node qiaomu-page.js share RETURNED_SLUG --name Friend --expires 7d --output ./private-share.json
+node qiaomu-page.js list --json
+node qiaomu-page.js account --json
 ```
 
-Replace `RETURNED_SLUG` with the actual publication result. Without an explicit configured instance, the CLI stops instead of sending credentials to another server. The `quickshare` command, `qiaomu-quickshare` Skill ID, environment variables, and private configuration paths are retained for compatibility with existing Quickshare installations. No data migration is needed for the rebrand.
+Replace `RETURNED_SLUG` with the actual publication result. Without an explicit configured instance, the CLI stops instead of sending credentials to another server. New installations use the `qiaomu-page` CLI, Skill ID, environment variables, and private configuration path. Legacy Quickshare identifiers remain readable so existing installations do not need a data or account migration.
 
-CLI 1.10 selects a clean work title on first publication: explicit `--title`, then the source HTML `<title>`, first `<h1>`, or Markdown level-one heading, and only then a humanized source name. Updates preserve the existing work title unless a new `--title` is explicit. This changes QiaoPage metadata only; it never rewrites HTML, Markdown, or build output, and it never derives or changes the account username from published content. Run `node quickshare.js check SOURCE --json` before publishing to detect sandbox compatibility risks.
+CLI 1.10 selects a clean work title on first publication: explicit `--title`, then the source HTML `<title>`, first `<h1>`, or Markdown level-one heading, and only then a humanized source name. Updates preserve the existing work title unless a new `--title` is explicit. This changes Qiaomu Page metadata only; it never rewrites HTML, Markdown, or build output, and it never derives or changes the account username from published content. Run `node qiaomu-page.js check SOURCE --json` before publishing to detect sandbox compatibility risks.
 
 The recommended `ACCOUNT_ORIGIN_TEMPLATE=https://{handle}.example.com` produces public URLs such as `https://alice.example.com/my-tool/`. The account handle and project path are fixed on first allocation; numeric suffixes are added only for collisions, and `--path` can choose the initial project path. Renaming the account or work does not change existing URLs. Public works under one account share that account origin's local storage, while different account subdomains stay isolated. Legacy `/s/slug` and per-work `CONTENT_ORIGIN_TEMPLATE` links remain compatible and redirect to the preferred short URL.
 
@@ -138,9 +138,9 @@ npm run verify:cloudflare
 
 Contributions and reproducible installation feedback are welcome. Follow [CONTRIBUTING](CONTRIBUTING.md), [Code of conduct](CODE_OF_CONDUCT.md), and [SECURITY](SECURITY.md). Never post tokens, invitation links, databases, or private files in an issue.
 
-QiaoPage evolved from [Quickshare](https://github.com/joeseesun/quickshare), with an agent-first workflow inspired by [here.now](https://here.now/). Code retains the ISC license; bundled Geist and Noto Sans SC fonts retain SIL OFL licensing. See [NOTICE](NOTICE.md).
+Qiaomu Page provides an agent-first publishing workflow inspired by [here.now](https://here.now/). Code retains the ISC license; bundled Geist and Noto Sans SC fonts retain SIL OFL licensing. See [NOTICE](NOTICE.md) and the [naming compatibility guide](docs/branding.md).
 
 Made and maintained by **[向阳乔木 / Joe](https://x.com/vista8)**. [Website](https://qiaomu.ai) · [Blog](https://blog.qiaomu.ai) · [Projects](https://tuijian.qiaomu.ai) · [GitHub](https://github.com/joeseesun/)
 
-[deploy-vercel]: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage&project-name=qiaopage&repository-name=qiaopage&env=QUICKSHARE_TOKEN&envDescription=Create+a+random+admin+secret+%28at+least+32+characters%29+and+save+it+privately.+See+the+setup+guide.&envLink=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage%2Fblob%2Fmain%2Fdocs%2Fdeploy-buttons.md&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22private%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22tursocloud%22%2C%22productSlug%22%3A%22database%22%2C%22protocol%22%3A%22storage%22%2C%22allowConnectExistingProduct%22%3Afalse%7D%5D&demo-title=QiaoPage&demo-description=Publish+from+your+agent.+Share+with+one+link.&demo-url=https%3A%2F%2Fquickshare-agent-test.vercel.app&demo-image=https%3A%2F%2Fraw.githubusercontent.com%2Fjoeseesun%2Fqiaopage%2Fmain%2Fdocs%2Fassets%2Fhero.png
-[deploy-cloudflare]: https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage
+[deploy-vercel]: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaomu-page&project-name=qiaomu-page&repository-name=qiaomu-page&env=QIAOMU_PAGE_TOKEN&envDescription=Create+a+random+admin+secret+%28at+least+32+characters%29+and+save+it+privately.+See+the+setup+guide.&envLink=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaomu-page%2Fblob%2Fmain%2Fdocs%2Fdeploy-buttons.md&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22private%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22tursocloud%22%2C%22productSlug%22%3A%22database%22%2C%22protocol%22%3A%22storage%22%2C%22allowConnectExistingProduct%22%3Afalse%7D%5D&demo-title=Qiaomu Page&demo-description=Publish+from+your+agent.+Share+with+one+link.&demo-url=https%3A%2F%2Fquickshare-agent-test.vercel.app&demo-image=https%3A%2F%2Fraw.githubusercontent.com%2Fjoeseesun%2Fqiaomu-page%2Fmain%2Fdocs%2Fassets%2Fhero.png
+[deploy-cloudflare]: https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaomu-page

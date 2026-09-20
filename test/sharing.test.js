@@ -101,7 +101,7 @@ test("standalone CLI reads and explicitly changes sharing without changing sourc
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qs-sharing-cli-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const cli = path.join(dir, "quickshare.js"), config = path.join(dir, "config.json");
-  fs.writeFileSync(cli, await (await call("/client/quickshare.js")).text());
+  fs.writeFileSync(cli, await (await call("/client/qiaomu-page.js")).text());
   fs.writeFileSync(config, JSON.stringify({ url, token }), { mode: 0o600 });
   const run = args => new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [cli, ...args, "--json"], { cwd: dir, env: { ...process.env, QUICKSHARE_CONFIG: config, QUICKSHARE_TOKEN: "", QUICKSHARE_URL: "" } });

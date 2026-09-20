@@ -1,6 +1,6 @@
 <div align="center">
 
-# QiaoPage · 乔木发布
+# Qiaomu Page
 
 **做好了，就分享。**
 
@@ -14,11 +14,11 @@
 [![Deploy with Vercel](https://vercel.com/button)][deploy-vercel]
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)][deploy-cloudflare]
 
-[![Verify](https://github.com/joeseesun/qiaopage/actions/workflows/check.yml/badge.svg)](https://github.com/joeseesun/qiaopage/actions/workflows/check.yml)
+[![Verify](https://github.com/joeseesun/qiaomu-page/actions/workflows/check.yml/badge.svg)](https://github.com/joeseesun/qiaomu-page/actions/workflows/check.yml)
 [![License: ISC](https://img.shields.io/badge/License-ISC-171717.svg)](LICENSE)
 [![Node.js 24+](https://img.shields.io/badge/Node.js-24%2B-171717.svg)](package.json)
 
-![QiaoPage：复制 Prompt 给 Agent，将做好的网页变成分享链接](docs/assets/hero.png)
+![Qiaomu Page：复制 Prompt 给 Agent，将做好的网页变成分享链接](docs/assets/hero.png)
 
 **一个 Prompt 接入 · 一句话发布 · 一个链接持续更新**
 
@@ -28,11 +28,11 @@
 
 你和 AI 做了一个小工具、一份交互报告，或者一整个静态网站。最想做的下一步，是发一个链接给朋友。
 
-QiaoPage 把这一步留在原来的对话里：**让 Agent 接上你自己的发布服务，发布文件，返回链接。** 以后说“更新刚才的网站”，朋友打开的仍是同一个地址。
+Qiaomu Page 把这一步留在原来的对话里：**让 Agent 接上你自己的发布服务，发布文件，返回链接。** 以后说“更新刚才的网站”，朋友打开的仍是同一个地址。
 
-给自己装一套，也能邀请朋友共用。每个人都有独立身份和自己的内容；朋友把邀请 Prompt 发给自己的 Agent，只需选一个用户名就能完成注册。初始密码由 CLI 生成并留在用户本机，不经过聊天。
+给自己装一套，也能让朋友共用。每个人都可以直接注册独立身份和发布空间，无需邀请码。初始密码由 CLI 生成并留在用户本机，不经过聊天。
 
-> 已有实例的受邀朋友：复制邀请 Prompt 给 Agent 即可。公开演示可浏览首页和示例；发布需要管理员邀请，或部署自己的实例。
+> 复制首页 Prompt 给 Agent 即可注册和接入；已有账号登录后复制，会连接原来的空间。
 
 ## 先玩一下
 
@@ -55,7 +55,7 @@ QiaoPage 把这一步留在原来的对话里：**让 Agent 接上你自己的�
 
 ## 把发布留在对话里
 
-在自己实例的首页复制 Prompt，或收到管理员发来的邀请 Prompt，粘贴给 Codex、Claude Code、Cursor 等具备命令执行能力的 Agent。它读取当前实例的 Skill，安装 CLI，连接你的发布空间，并确认账号和权限。
+在实例首页复制 Prompt，粘贴给 Codex、Claude Code、Cursor 等具备命令执行能力的 Agent。它读取当前实例的 Skill，安装 CLI，直接注册并连接你的发布空间；不需要邀请码。已有账号登录后复制 Prompt，会连接原来的空间。
 
 ```text
 你：把这个文件夹发布出去。
@@ -79,16 +79,16 @@ Agent：注册完成。[点击查看初始密码]（实际使用时指向你本�
 
 上面的链接是流程示意，不是固定密码或仓库内文件。真实安装时，CLI 会为每位用户单独生成 12 位初始密码，排除容易混淆的字符，并以 `0600` 权限保存到本机。
 
-也可以直接说 **“发布到 qp”**、**“发布到quickshare”**、**“更新 qs 上的网站”**。QiaoPage / Quickshare / qp / qs 都指向已有的同一份连接；已注册账号不会被重新注册或重置密码。
+也可以直接说 **“发布到 QP”**、**“更新 QP 上的网站”**。Qiaomu Page 是正式产品名，QP 是唯一推荐简称；已注册账号不会被重新注册或重置密码。
 
 这是可用操作的示意，具体链接由你的实例返回。首次安装完成工具接入和账号注册，不会自动上传文件；发布什么始终由你决定。
 
-| 你想做什么 | QiaoPage 帮你完成 |
+| 你想做什么 | Qiaomu Page 帮你完成 |
 | --- | --- |
 | 分享 AI 做好的作品 | HTML、Markdown、静态网站文件夹，上传后直接打开 |
 | 一直用同一个链接 | 自动分配 `用户名.example.com/项目名`；重名时才加数字，改标题、改账号、更新内容都保留 URL |
 | 放心继续改 | 重试不重复建站，版本冲突检查，历史恢复、下架与重新发布 |
-| 让朋友一起用 | 一人一份邀请 Prompt、独立身份、独立空间；管理员可备注和停用 |
+| 让朋友一起用 | 直接注册独立身份和空间；管理员可查看和停用成员 |
 | 让分享卡片更好看 | 按需设置 OG 标题、摘要和封面，按需开启搜索收录 |
 | 在对话里管理账号 | 首次只询问用户名，初始密码私密落盘；以后可在对话或后台修改 |
 | 掌握自己的数据 | Docker / VPS / Cloudflare / Vercel，私有存储，可备份与恢复 |
@@ -101,8 +101,8 @@ Agent：注册完成。[点击查看初始密码]（实际使用时指向你本�
 
 <table>
 <tr>
-<td width="72%"><img src="docs/assets/home-desktop.png" alt="QiaoPage 桌面首页：一屏完成发布入口展示"></td>
-<td width="28%"><img src="docs/assets/home-mobile.png" alt="QiaoPage 390px 手机首页"></td>
+<td width="72%"><img src="docs/assets/home-desktop.png" alt="Qiaomu Page 桌面首页：一屏完成发布入口展示"></td>
+<td width="28%"><img src="docs/assets/home-mobile.png" alt="Qiaomu Page 390px 手机首页"></td>
 </tr>
 </table>
 
@@ -128,8 +128,8 @@ Agent：注册完成。[点击查看初始密码]（实际使用时指向你本�
 需要 Docker 与 Compose v2；无需在宿主机安装 Node.js。首次构建时间取决于网络和设备。
 
 ```sh
-git clone https://github.com/joeseesun/qiaopage.git
-cd qiaopage
+git clone https://github.com/joeseesun/qiaomu-page.git
+cd qiaomu-page
 
 docker run --rm --user "$(id -u):$(id -g)" \
   -v "$PWD:/workspace" -w /workspace \
@@ -142,7 +142,7 @@ docker compose --env-file .env.docker up -d --build --wait
 
 ```sh
 docker compose --env-file .env.docker exec -T quickshare \
-  node bin/quickshare.js dashboard --url http://127.0.0.1:3000
+  node bin/qiaomu-page.js dashboard --url http://127.0.0.1:3000
 ```
 
 登录后即可发布作品、设置账号或邀请朋友。**没有通用默认密码**；随机管理员密钥保存在本机 `.env.docker`，请私密保存。公网使用需配置 HTTPS 与对应 `BASE_URL`。
@@ -166,13 +166,13 @@ docker compose --env-file .env.docker exec -T quickshare \
 npm ci --ignore-scripts
 
 # Cloudflare Workers + Durable Objects + R2
-npm run install:cloudflare -- qiaopage
+npm run install:cloudflare -- qiaomu-page
 
 # 或：Vercel + Turso + 私有 Blob
-npm run install:vercel -- qiaopage
+npm run install:vercel -- qiaomu-page
 ```
 
-安装脚本创建或复用资源、生成并保存管理员密钥，完成后输出访问地址。需要你自己的平台账号；首次登录、服务条款和可能涉及的计费开通由本人确认。`qiaopage` 可换成自己的项目名；已有安装升级时沿用原名。
+安装脚本创建或复用资源、生成并保存管理员密钥，完成后输出访问地址。需要你自己的平台账号；首次登录、服务条款和可能涉及的计费开通由本人确认。`qiaomu-page` 可换成自己的项目名；已有安装升级时沿用原名。
 
 CLI 安装与云端运行已实测。按钮提供官方安装向导；登录、套餐和条款由本人确认。
 
@@ -187,33 +187,33 @@ npm run setup
 npm start
 ```
 
-访问[本地首页](http://127.0.0.1:3000)。另开终端运行 `node bin/quickshare.js dashboard` 获取本地管理员登录链接。`.env` 和 Docker 的 `.env.docker` 独立保存。
+访问[本地首页](http://127.0.0.1:3000)。另开终端运行 `node bin/qiaomu-page.js dashboard` 获取本地管理员登录链接。`.env` 和 Docker 的 `.env.docker` 独立保存。
 
 </details>
 
 ### 已连接 Agent？CLI 也能独立用
 
-下面的 `quickshare.js` 指实例提供的独立 CLI 文件，使用 Agent 安装时记录的路径：
+下面的 `qiaomu-page.js` 指实例提供的独立 CLI 文件，使用 Agent 安装时记录的路径：
 
 ```sh
-node quickshare.js whoami --json
-node quickshare.js publish ./dist
-node quickshare.js update ./dist
-node quickshare.js publish ./dist --new
-node quickshare.js access RETURNED_SLUG --mode link
-node quickshare.js share RETURNED_SLUG --name Friend --expires 7d --output ./private-share.json
-node quickshare.js list --json
-node quickshare.js versions RETURNED_SLUG
-node quickshare.js account --json
+node qiaomu-page.js whoami --json
+node qiaomu-page.js publish ./dist
+node qiaomu-page.js update ./dist
+node qiaomu-page.js publish ./dist --new
+node qiaomu-page.js access RETURNED_SLUG --mode link
+node qiaomu-page.js share RETURNED_SLUG --name Friend --expires 7d --output ./private-share.json
+node qiaomu-page.js list --json
+node qiaomu-page.js versions RETURNED_SLUG
+node qiaomu-page.js account --json
 ```
 
-`RETURNED_SLUG` 用发布时返回的实际值替换。未配置实例地址时，CLI 会停止并提示登录，不会连接到别人的服务。QiaoPage 保留 `quickshare` CLI、`qiaomu-quickshare` Skill 与旧配置标识，已有连接无需重建。见[品牌与兼容性](docs/branding.md)。
+`RETURNED_SLUG` 用发布时返回的实际值替换。未配置实例地址时，CLI 会停止并提示登录，不会连接到别人的服务。新安装使用 `qiaomu-page` Skill、CLI 和配置名；旧 `quickshare` 命令、Skill 与配置仍可迁移复用，已有连接无需重建。见[命名与兼容性](docs/branding.md)。
 
-CLI 1.10 会在首次发布时自动选择良好的作品标题：`--title` 优先，否则读取 HTML `<title>`、首个 `<h1>` 或 Markdown 一级标题，最后才使用经过整理的源文件名。更新时保留已有作品标题，除非明确传入新的 `--title`。这些都只是 QiaoPage 元数据，不会改写原始 HTML、Markdown 或构建产物；账号用户名也不会从作品推导或修改。发布前可运行 `node quickshare.js check SOURCE --json` 检查浏览器存储、Service Worker、Cookie、顶层跳转和管理 API 等运行兼容性风险。
+CLI 1.10 会在首次发布时自动选择良好的作品标题：`--title` 优先，否则读取 HTML `<title>`、首个 `<h1>` 或 Markdown 一级标题，最后才使用经过整理的源文件名。更新时保留已有作品标题，除非明确传入新的 `--title`。这些都只是 Qiaomu Page 元数据，不会改写原始 HTML、Markdown 或构建产物；账号用户名也不会从作品推导或修改。发布前可运行 `node qiaomu-page.js check SOURCE --json` 检查浏览器存储、Service Worker、Cookie、顶层跳转和管理 API 等运行兼容性风险。
 
 推荐配置 `ACCOUNT_ORIGIN_TEMPLATE=https://{handle}.example.com`，公开地址会是 `https://用户名.example.com/项目名/`。账号 handle 在第一次分配后固定；项目 path 从标题提炼，只在重名时追加 `-2`、`-3`，也可在首次发布时用 CLI `--path` 或网页“项目短地址”指定。改用户名、标题和内容都不会换链接。同一账号的公开作品共享该账号 origin 的本地存储，不同账号仍由子域隔离；管理 Cookie/API 和 Service Worker 始终不可用。旧 `/s/slug` 与旧 `CONTENT_ORIGIN_TEMPLATE` 作品子域继续兼容并跳转至首选短网址。
 
-直接对 Agent 说：「更新到 qp」「另建一个网站」「设为仅自己可见」「生成一个 7 天有效的分享链接」「撤销给小王的链接」。
+直接对 Agent 说：「更新到 QP」「另建一个网站」「设为仅自己可见」「生成一个 7 天有效的分享链接」「撤销给小王的链接」。
 
 项目关联、错误恢复、访问模式与升级注意事项见[CLI 与分享权限](docs/cli-and-access.md)。分享文件包含只读访问地址，应保存在发布目录之外。
 
@@ -252,11 +252,11 @@ flowchart LR
 <details>
 <summary>常见问题</summary>
 
-**朋友第一次要提供什么？** 只需告诉 Agent 想要的用户名。CLI 会生成初始密码并保存到用户本机的私密文件，聊天中不显示密码。用户可点击 Agent 返回的真实本地文件链接查看，登录后再在“账号设置”修改。邀请一次有效，请为每位朋友单独生成。
+**第一次要提供什么？** 不需要邀请码，只需告诉 Agent 想要的用户名。CLI 会生成初始密码并保存到用户本机的私密文件，聊天中不显示密码。用户可点击 Agent 返回的真实本地文件链接查看，登录后再在“账号设置”修改。
 
-**为什么新名字还在用 quickshare 命令？** 为兼容已有实例、Agent 技能和私密配置。产品品牌与存储、协议标识分开演进。
+**旧的 quickshare 命令还能用吗？** 可以。新安装使用 `qiaomu-page`，旧命令、环境变量和配置路径作为兼容层保留。
 
-**提示没有配置服务地址？** 使用你自己实例的首页 Prompt 接入，或查看 `node quickshare.js login --help`。不要把管理员密钥发给朋友。
+**提示没有配置服务地址？** 使用你自己实例的首页 Prompt 接入，或查看 `node qiaomu-page.js login --help`。不要把管理员密钥发给朋友。
 
 **更新后链接会变吗？** CLI 1.6 起，同一来源的 `publish` 自动更新已关联站点，`update` 只更新、不新建。明确另建时用 `publish --new`。旧项目先用 `link SLUG SOURCE` 关联已有站点。
 
@@ -266,7 +266,7 @@ flowchart LR
 
 ## 开发与贡献
 
-欢迎安装反馈、可复现的 Bug 和聚焦的小范围 PR。读[贡献指南](CONTRIBUTING.md)、[行为准则](CODE_OF_CONDUCT.md)；安全问题请走[私密报告](https://github.com/joeseesun/qiaopage/security/advisories/new)。
+欢迎安装反馈、可复现的 Bug 和聚焦的小范围 PR。读[贡献指南](CONTRIBUTING.md)、[行为准则](CODE_OF_CONDUCT.md)；安全问题请走[私密报告](https://github.com/joeseesun/qiaomu-page/security/advisories/new)。
 
 ```sh
 npm run check
@@ -278,7 +278,7 @@ npm run verify:backends   # libSQL + MinIO 集成验收
 npm run verify:cloudflare # 本地原生 Workers 验收
 ```
 
-当前发布通过 66 项自动化测试与桌面 / 390px 浏览器验收。CI 持续验证 Node、Docker、libSQL / S3 与 Workers；实际云部署和恢复记录见[验收范围](docs/verification.md)。
+当前发布通过 74 项自动化测试与桌面 / 390px 浏览器验收。CI 持续验证 Node、Docker、libSQL / S3 与 Workers；实际云部署和恢复记录见[验收范围](docs/verification.md)。
 
 <details>
 <summary>代码导览</summary>
@@ -287,7 +287,7 @@ npm run verify:cloudflare # 本地原生 Workers 验收
 | --- | --- |
 | `server.js` / `lib/` | 发布 API、账号、权限、存储与分享设置 |
 | `views/` / `public/showcase/` | 网页首页、后台与作品展厅 |
-| `bin/quickshare.js` / `lib/agent.js` | 独立 CLI 与实例生成的 Agent Skill |
+| `bin/qiaomu-page.js` / `lib/agent.js` | 独立 CLI 与实例生成的 Agent Skill |
 | `cloudflare/` / `vercel/` | 云平台运行时 |
 | `scripts/` / `test/` | 安装、备份、迁移与验收 |
 | `examples/` | 可直接发布的静态作品 |
@@ -298,12 +298,12 @@ npm run verify:cloudflare # 本地原生 Workers 验收
 
 ## 来源与作者
 
-QiaoPage 从 [Quickshare](https://github.com/joeseesun/quickshare) 演进而来，专注于 Agent 发布与可自行安装的服务。交互理念受到 [here.now](https://here.now/) 启发。沿用 **ISC** 代码许可，Geist 与 Noto Sans SC 字体遵循各自的 SIL OFL；详见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE.md)。
+Qiaomu Page 专注于 Agent 发布与可自行安装的服务，交互理念受到 [here.now](https://here.now/) 启发。沿用 **ISC** 代码许可，Geist 与 Noto Sans SC 字体遵循各自的 SIL OFL；详见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE.md)。历史命名与升级兼容见[命名与兼容性](docs/branding.md)。
 
 由 **[向阳乔木](https://x.com/vista8)** 制作和维护。把 AI 做成能真正用上的工具。
 
 [个人网站](https://qiaomu.ai) · [博客](https://blog.qiaomu.ai) · [乔木推荐](https://tuijian.qiaomu.ai) · [X @vista8](https://x.com/vista8) · [GitHub](https://github.com/joeseesun/)<br>
 微信公众号：向阳乔木推荐看
 
-[deploy-vercel]: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage&project-name=qiaopage&repository-name=qiaopage&env=QUICKSHARE_TOKEN&envDescription=Create+a+random+admin+secret+%28at+least+32+characters%29+and+save+it+privately.+See+the+setup+guide.&envLink=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage%2Fblob%2Fmain%2Fdocs%2Fdeploy-buttons.md&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22private%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22tursocloud%22%2C%22productSlug%22%3A%22database%22%2C%22protocol%22%3A%22storage%22%2C%22allowConnectExistingProduct%22%3Afalse%7D%5D&demo-title=QiaoPage&demo-description=Publish+from+your+agent.+Share+with+one+link.&demo-url=https%3A%2F%2Fquickshare-agent-test.vercel.app&demo-image=https%3A%2F%2Fraw.githubusercontent.com%2Fjoeseesun%2Fqiaopage%2Fmain%2Fdocs%2Fassets%2Fhero.png
-[deploy-cloudflare]: https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaopage
+[deploy-vercel]: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaomu-page&project-name=qiaomu-page&repository-name=qiaomu-page&env=QIAOMU_PAGE_TOKEN&envDescription=Create+a+random+admin+secret+%28at+least+32+characters%29+and+save+it+privately.+See+the+setup+guide.&envLink=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaomu-page%2Fblob%2Fmain%2Fdocs%2Fdeploy-buttons.md&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22private%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22tursocloud%22%2C%22productSlug%22%3A%22database%22%2C%22protocol%22%3A%22storage%22%2C%22allowConnectExistingProduct%22%3Afalse%7D%5D&demo-title=Qiaomu Page&demo-description=Publish+from+your+agent.+Share+with+one+link.&demo-url=https%3A%2F%2Fquickshare-agent-test.vercel.app&demo-image=https%3A%2F%2Fraw.githubusercontent.com%2Fjoeseesun%2Fqiaomu-page%2Fmain%2Fdocs%2Fassets%2Fhero.png
+[deploy-cloudflare]: https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fjoeseesun%2Fqiaomu-page

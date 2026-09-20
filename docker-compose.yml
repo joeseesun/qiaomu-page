@@ -11,9 +11,10 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "127.0.0.1:${QUICKSHARE_PORT:-8090}:3000"
+      - "127.0.0.1:${QIAOMU_PAGE_PORT:-${QUICKSHARE_PORT:-8090}}:3000"
     environment:
-      QUICKSHARE_TOKEN: ${QUICKSHARE_TOKEN:?Set a private publish token}
+      QIAOMU_PAGE_TOKEN: ${QIAOMU_PAGE_TOKEN:-}
+      QUICKSHARE_TOKEN: ${QUICKSHARE_TOKEN:-}
       BASE_URL: ${BASE_URL:-http://127.0.0.1:8090}
       CONTENT_ORIGIN_TEMPLATE: ${CONTENT_ORIGIN_TEMPLATE:-}
       ACCOUNT_ORIGIN_TEMPLATE: ${ACCOUNT_ORIGIN_TEMPLATE:-}

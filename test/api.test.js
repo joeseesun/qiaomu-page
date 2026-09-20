@@ -213,7 +213,7 @@ test("account subdomains use stable readable paths and retain isolated legacy al
     request.end();
   });
   assert.equal(management.status, 200);
-  assert.match(management.body, /QiaoPage/);
+  assert.match(management.body, /Qiaomu Page/);
 
   const isolated = await new Promise((resolve, reject) => {
     const request = http.request(local + "/site/", { headers: { Host: "owner.example.test" } }, (response) => {
@@ -312,7 +312,7 @@ test("CLI publishes, updates, exports and preserves private login credentials", 
     new Promise((resolve) => {
       const child = spawn(
         process.execPath,
-        [path.join(__dirname, "../bin/quickshare.js"), ...args],
+        [path.join(__dirname, "../bin/qiaomu-page.js"), ...args],
         {
           env: {
             ...process.env,

@@ -22,7 +22,7 @@ test("live identity and capabilities expose own usage and role-filtered tools wi
  assert.equal(me.account.id,a.id);assert.equal(me.account.role,"member");assert.equal(me.connection.kind,"agent_key");assert.equal(me.usage.sites,1);assert.equal(me.permissions.manageFriends,false);
  assert.equal(me.defaults.searchIndexable,false);assert.equal(me.account.registered,false);
  const skill=await(await call("/skill.md")).text();
- assert.ok(JSON.parse(skill.split("\n").find(line=>line.startsWith("description: ")).slice(13)).includes("Quickshare"));
+ assert.ok(JSON.parse(skill.split("\n").find(line=>line.startsWith("description: ")).slice(13)).includes("Qiaomu Page"));
  const caps=await(await call("/api/v1/capabilities",undefined,"GET",a.token)).json();
  assert.ok(caps.tools.some(x=>x.name==="account.update"&&x.scope==="self"));assert.ok(!caps.tools.some(x=>x.name.startsWith("friends.")));
  assert.equal(caps.tools.find(x=>x.name==="sharing.preview").mutates,false);
@@ -89,7 +89,7 @@ test("concurrent account writes and credentials revoked during password derivati
 async function cliFixture(t,fixtureData){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),"qs-agent-cli-"));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
  const cli=path.join(dir,"quickshare.js"),config=path.join(dir,"connection.json");
- fs.writeFileSync(cli,await(await fixtureData.call("/client/quickshare.js")).text());
+ fs.writeFileSync(cli,await(await fixtureData.call("/client/qiaomu-page.js")).text());
  fs.writeFileSync(config,JSON.stringify({url:fixtureData.url,token:fixtureData.a.token}),{mode:0o600});
  const run=(args,input="",token)=>new Promise((resolve,reject)=>{
   const child=spawn(process.execPath,[cli,...args,"--json"],{cwd:dir,env:{...process.env,QUICKSHARE_CONFIG:config,QUICKSHARE_TOKEN:token||"",QUICKSHARE_URL:""}});
@@ -99,7 +99,7 @@ async function cliFixture(t,fixtureData){
 test("portable CLI discovers permissions, changes own account, stores generated passwords privately and previews without saving",async t=>{
  const f=await fixture(t),{run,dir,config}=await cliFixture(t,f),originalConfig=fs.readFileSync(config,"utf8");
  const who=await run(["whoami"]);assert.equal(who.data.account.id,f.a.id);
- const cap=await run(["capabilities"]);assert.equal(cap.data.cliVersion,"1.10.0");
+ const cap=await run(["capabilities"]);assert.equal(cap.data.cliVersion,"1.11.0");
  const renamed=await run(["account","--username","agent-user"]);assert.equal(renamed.code,0,renamed.stderr);
  const shortPassword=await run(["account","--password-stdin"],"short123\n");assert.equal(shortPassword.code,0,shortPassword.stderr);assert.equal(shortPassword.data.passwordVerified,true);
  const rejectedPassword=await run(["account","--password-stdin"],"short12\n");assert.equal(rejectedPassword.code,2);assert.match(rejectedPassword.stderr,/8–200/);
@@ -157,9 +157,9 @@ test("unconfigured self-hosted CLI never sends an environment token to a default
  fs.writeFileSync(hook,`global.fetch=()=>{require('node:fs').writeFileSync(${JSON.stringify(marker)},'attempt');throw new Error('Network disabled in test');};`);
  const env={...process.env,QUICKSHARE_TOKEN:rootToken,QUICKSHARE_CONFIG:path.join(dir,"missing.json")};delete env.QUICKSHARE_URL;
  const result=await new Promise((resolve,reject)=>{
-  const child=spawn(process.execPath,["--require",hook,path.resolve(__dirname,"../bin/quickshare.js"),"whoami","--json"],{env,stdio:["ignore","pipe","pipe"]});
+  const child=spawn(process.execPath,["--require",hook,path.resolve(__dirname,"../bin/qiaomu-page.js"),"whoami","--json"],{env,stdio:["ignore","pipe","pipe"]});
   let out="",err="";child.stdout.on("data",d=>out+=d);child.stderr.on("data",d=>err+=d);child.on("error",reject);child.on("close",code=>resolve({code,out,err}));
  });
- assert.equal(result.code,2);assert.match(result.err,/No Quickshare server configured/);
+ assert.equal(result.code,2);assert.match(result.err,/No Qiaomu Page server configured/);
  assert.equal(fs.existsSync(marker),false);assert.ok(!(result.err+result.out).includes(rootToken));
 });

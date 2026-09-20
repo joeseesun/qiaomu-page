@@ -476,6 +476,26 @@ const base = "http://127.0.0.1:39997",
     assert.equal(await gallery.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await gallery.screenshot({path: path.join(root, "artifacts/friends-gallery-mobile.png"), fullPage: true});
     await gallery.close();
+    const openContext = await browser.newContext({viewport: {width: 1440, height: 1000}});
+    const openRegistration = await openContext.newPage();
+    openRegistration.on("pageerror", (e) => errors.push(e.message));
+    await openRegistration.goto(base);
+    await openRegistration.getByRole("button", {name: "注册", exact: true}).click();
+    await openRegistration.getByRole("heading", {name: "注册你的发布空间"}).waitFor();
+    assert.equal(await openRegistration.locator("#join-field").isVisible(), false);
+    await openRegistration.screenshot({path: path.join(root, "artifacts/open-registration-desktop.png"), fullPage: true});
+    await openRegistration.setViewportSize({width: 390, height: 844});
+    assert.equal(await openRegistration.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await openRegistration.screenshot({path: path.join(root, "artifacts/open-registration-mobile.png"), fullPage: true});
+    await openRegistration.locator('#auth-form [name="username"]').fill("open-browser-user");
+    await openRegistration.locator('#auth-form [name="password"]').fill("open-browser-password");
+    await openRegistration.getByRole("button", {name: "注册并开始使用"}).click();
+    await openRegistration.getByRole("heading", {name: "发布，然后分享"}).waitFor();
+    const openMember = await openRegistration.evaluate(async () => (await (await fetch("/api/v1/me")).json()).member);
+    assert.equal(openMember.username, "open-browser-user");
+    assert.equal(openMember.registered, true);
+    assert.equal(openMember.admin, false);
+    await openContext.close();
     assert.equal(errors.length, 0, errors.join("\n"));
     fs.writeFileSync(
       path.join(root, "artifacts/friends-ui-results.json"),
@@ -488,6 +508,7 @@ const base = "http://127.0.0.1:39997",
             "invite+join",
             "clipboard",
             "public install prompt + clipboard fallback",
+            "open registration without invitation",
             "login dialog + keyboard focus return",
             "directory+ES modules+CSS+image+subpage",
             "sandbox isolation",
@@ -506,7 +527,7 @@ const base = "http://127.0.0.1:39997",
       ),
     );
     console.log(
-      "Browser acceptance passed: desktop, 390px, invitations, directory publishing, isolation, versions, clipboard, password, member disable.",
+      "Browser acceptance passed: desktop, 390px, open registration, legacy invitations, directory publishing, isolation, versions, clipboard, password, member disable.",
     );
   } catch (error) {
     await page.screenshot({path:path.join(root,"artifacts/friends-failure.png"),fullPage:true});

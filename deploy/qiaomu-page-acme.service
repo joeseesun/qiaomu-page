@@ -1,5 +1,5 @@
 [Unit]
-Description=Renew QiaoPage wildcard content-origin certificate
+Description=Renew Qiaomu Page wildcard content-origin certificate
 After=network-online.target
 Wants=network-online.target
 

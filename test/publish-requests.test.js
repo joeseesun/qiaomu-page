@@ -107,7 +107,7 @@ test("downloaded CLI retries a lost publication response without a second site a
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qs-cli-request-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const cli = path.join(dir, "quickshare.js"), file = path.join(dir, "hello.html"), config = path.join(dir, "config.json");
-  fs.writeFileSync(cli, await (await fetch(url + "/client/quickshare.js")).text());
+  fs.writeFileSync(cli, await (await fetch(url + "/client/qiaomu-page.js")).text());
   fs.writeFileSync(file, content.html);
   let drop = true;
   const proxy = createServer(async (req, res) => {

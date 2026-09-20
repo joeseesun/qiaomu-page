@@ -488,8 +488,13 @@ test("public agent setup uses the configured origin without credentials or publi
   const skillResponse = await call("/skill.md", "GET", undefined, { headers });
   assert.equal(skillResponse.status, 200);
   const skill = await skillResponse.text();
-  assert.match(skill, /^---\nname: qiaomu-quickshare\ndescription: .+\nmetadata:/);
-  assert.ok(skill.includes(origin + "/client/quickshare.js"));
+  assert.match(skill, /^---\nname: qiaomu-page\ndescription: .+\nmetadata:/);
+  assert.ok(skill.includes(origin + "/client/qiaomu-page.js"));
+  const canonicalCli = await call("/client/qiaomu-page.js");
+  const legacyCli = await call("/client/quickshare.js");
+  assert.equal(canonicalCli.status, 200);
+  assert.equal(legacyCli.status, 200);
+  assert.equal(await canonicalCli.text(), await legacyCli.text());
   assert.ok(skill.includes("doctor --json"));
   assert.ok(skill.includes("account --username NAME --generate-password"));
   assert.ok(skill.includes("clickable local link"));
@@ -497,9 +502,10 @@ test("public agent setup uses the configured origin without credentials or publi
   assert.equal(promptResponse.status, 200);
   const prompt = await promptResponse.text();
   assert.ok(prompt.includes(origin + "/skill.md"));
-  assert.ok(prompt.includes("本次不自动上传文件"));
-  assert.ok(prompt.includes("只询问我想要的用户名"));
-  assert.ok(prompt.includes("12 位"));
+  assert.ok(prompt.includes("直接注册新的个人空间"));
+  assert.ok(prompt.includes("本次只完成接入，不发布内容"));
+  assert.ok(prompt.includes("新空间只问我用户名"));
+  assert.ok(prompt.includes("不需要邀请码"));
   for (const endpoint of ["/", "/publish"]) {
     const response = await call(endpoint);
     assert.equal(response.status, 200);
@@ -519,7 +525,7 @@ test("downloaded CLI works outside the repository with directory assets and Mark
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qs-portable-"));
   t.after(() => fs.rmSync(dir, { recursive: true }));
   const cli = path.join(dir, "quickshare.js");
-  fs.writeFileSync(cli, await (await call("/client/quickshare.js")).text());
+  fs.writeFileSync(cli, await (await call("/client/qiaomu-page.js")).text());
   fs.mkdirSync(path.join(dir, "site/assets"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "site/index.md"),
@@ -548,7 +554,7 @@ test("downloaded CLI works outside the repository with directory assets and Mark
     });
   const helpResult = await run(["--help"]);
   assert.equal(helpResult.code, 0, helpResult.err);
-  assert.match(helpResult.out, /Quickshare/);
+  assert.match(helpResult.out, /Qiaomu Page/);
   const connection = await run(["doctor", "--json"]);
   assert.equal(connection.code, 0, connection.err);
   assert.equal(JSON.parse(connection.out).member.username, "owner");

@@ -1,6 +1,6 @@
 # 多平台架构与状态
 
-2026-09-10。QiaoPage 已提供 Docker / VPS、Cloudflare Workers 和 Vercel 的独立运行方式。[安装指南](cloud-install.md)记录 CLI、登录、资源创建与恢复步骤；[验收记录](verification.md)区分本地、云端和浏览器按钮。
+2026-09-10。Qiaomu Page 已提供 Docker / VPS、Cloudflare Workers 和 Vercel 的独立运行方式。[安装指南](cloud-install.md)记录 CLI、登录、资源创建与恢复步骤；[验收记录](verification.md)区分本地、云端和浏览器按钮。
 
 | 平台 | 数据库 | 文件存储 | 运行时 |
 | --- | --- | --- | --- |
@@ -12,7 +12,7 @@
 
 推荐的 `ACCOUNT_ORIGIN_TEMPLATE` 为每个账号分配固定子域，并为作品分配固定路径，例如 `https://alice.example.com/my-tool/`。账号 handle 与项目 path 都在首次分配后持久化，用户名和标题后续可独立修改；重名 path 才追加数字。每个平台启用前必须配好通配 DNS/TLS、Host 路由并确认管理会话使用 host-only Cookie。同一账号的公开作品共享 origin，不同账号由子域隔离。旧 `/s/slug` 与 `CONTENT_ORIGIN_TEMPLATE` 作品子域保留为兼容入口并跳转到首选短网址；私密、受限和未配置实例继续使用 opaque sandbox。
 
-VPS/Nginx 的旧作品域和账号短网址参考配置分别位于 `deploy/nginx-pages.t5t6.com.conf` 与 `deploy/nginx-accounts.t5t6.com.conf`；通配证书必须使用 DNS-01 自动续期，并使用仅允许 DNS 验证记录操作的独立凭据。`deploy/qiaopage-acme.*` 提供 systemd 每日续期检查示例；凭据和私钥不得进入仓库。
+VPS/Nginx 的旧作品域和账号短网址参考配置分别位于 `deploy/nginx-pages.t5t6.com.conf` 与 `deploy/nginx-accounts.t5t6.com.conf`；通配证书必须使用 DNS-01 自动续期，并使用仅允许 DNS 验证记录操作的独立凭据。`deploy/qiaomu-page-acme.*` 提供 systemd 每日续期检查示例；凭据和私钥不得进入仓库。
 
 ## 为什么 Cloudflare 使用 Durable Object
 
@@ -28,7 +28,7 @@ Vercel 的 4.5 MB 请求限制由私有 512 KiB 分块解决，超过 3 MiB 的�
 
 ## 仓库与数据迁移
 
-QiaoPage 从 Quickshare 演进而来，保留 API、CLI 和配置兼容，旧仓库保留旧历史。2026-09-10 既有生产服务已迁移到数据库索引 + 私有对象目录：14 个站点、11 条历史、2 名成员，原地址和内容保留；迁移前后逻辑审计一致，完整备份与隔离恢复通过。生产目前运行已合并的存储版本；云端运行时适配先在两个独立测试安装验收，不会自动替换生产服务或搬走朋友的数据。
+Qiaomu Page 从 Quickshare 演进而来，保留 API、CLI 和配置兼容，旧仓库保留旧历史。2026-09-10 既有生产服务已迁移到数据库索引 + 私有对象目录：14 个站点、11 条历史、2 名成员，原地址和内容保留；迁移前后逻辑审计一致，完整备份与隔离恢复通过。生产目前运行已合并的存储版本；云端运行时适配先在两个独立测试安装验收，不会自动替换生产服务或搬走朋友的数据。
 
 Cloudflare 的恢复使用数据库 PITR + 仍保留的不可变 R2 对象；Vercel 可完整导出为 SQLite + 文件并恢复到 Node / Docker。备份与恢复操作须覆盖账号、索引、历史和文件，不能只备份数据库。
 
