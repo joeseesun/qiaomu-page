@@ -156,8 +156,8 @@ async function passwordInput() {
       throw new Error("Password input too long.");
   }
   value = value.replace(/\r?\n$/, "");
-  if (value.length < 12 || value.length > 200)
-    throw new Error("Password must contain 12–200 characters.");
+  if (value.length < 8 || value.length > 200)
+    throw new Error("Password must contain 8–200 characters.");
   return value;
 }
 function boolFlag(name) {
