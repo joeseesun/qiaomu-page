@@ -144,12 +144,22 @@ dialog form { margin: 18px 0; }
 #account-name { font-size: 14px; color: var(--muted); }
 hr { border: 0; border-top: 1px solid var(--line); margin: 26px 0; }
 #account-dialog .hint { margin: 8px 0 14px; }
+.inline-status { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: start; padding: 13px 14px; border: 1px solid #b7d7c5; border-radius: 8px; background: #f2f8f5; color: #124c35; }
+.inline-status-icon { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #176b45; color: #fff; }
+.inline-status strong, .inline-status span span { display: block; }
+.inline-status strong { font-size: 14px; font-weight: 600; line-height: 1.55; }
+.inline-status span span { margin-top: 2px; color: #3e6655; font-size: 13px; line-height: 1.55; }
+#account-save { min-width: 108px; }
+button.copy-complete { border-color: #176b45; background: #176b45; color: #fff; }
+button[data-copy-label] { min-width: 84px; }
 #key-result { margin-top: 14px; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 25px; }
 #confirm-description { margin-top: 15px; color: var(--muted); font-size: 14px; }
 #toast, #agent-feedback { position: fixed; bottom: 24px; left: 50%; width: max-content; text-align: center; transform: translateX(-50%); border-radius: 9px; background: #171717; color: #fff; padding: 11px 20px; font-size: 14px; box-shadow: 0 4px 20px #0001; z-index: 10; pointer-events: none; max-width: calc(100vw - 32px); }
 #toast { opacity: 0; }
 #toast.show { opacity: 1; }
+.dialog-toast { position: fixed; bottom: max(24px, env(safe-area-inset-bottom)); left: 50%; width: max-content; max-width: calc(100vw - 32px); padding: 11px 20px; border-radius: 9px; background: #171717; color: #fff; box-shadow: 0 8px 28px #0003; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transform: translate(-50%, 6px); transition: opacity 160ms, transform 160ms; }
+.dialog-toast.show { opacity: 1; transform: translate(-50%, 0); }
 #agent-feedback:empty { display: none; }
 #install-prompt { min-height: 240px; resize: vertical; margin-top: 18px; font-size: 14px; line-height: 1.8; }
 .publish-guide-page { max-width: 850px; }
@@ -174,6 +184,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 26px 0; }
   .top nav button:hover { color: #171717; }
 }
 @media (max-width: 700px) {
+  button { min-height: 44px; }
   .top { padding: 0 20px; height: 64px; }
   .top nav { gap: 16px; font-size: 13px; }
   .brand { font-size: 20px; gap: 8px; }

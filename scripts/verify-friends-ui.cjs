@@ -156,7 +156,8 @@ const base = "http://127.0.0.1:39997",
     await friend.locator("#account-button").click();
     await friend.locator("#password-form [name=password]").fill("qa-password-654321");
     await friend.getByRole("button", {name: "保存账号"}).click();
-    await friend.locator("#toast").filter({hasText: "密码已保存"}).waitFor();
+    await friend.getByRole("status").filter({hasText: "密码修改成功"}).waitFor();
+    await friend.getByText("当前页面仍可用，其他网页登录已退出；已连接的 Agent 不受影响。", {exact:true}).waitFor();
     const registered = await friend.evaluate(async () => (await (await fetch("/api/v1/me")).json()).member);
     assert.equal(registered.id, guest.id);
     assert.equal(registered.registered, true);
@@ -288,7 +289,7 @@ const base = "http://127.0.0.1:39997",
       await friend.screenshot({path:path.join(root,`artifacts/sharing-${size.width}.png`)});
     }
     await friend.locator("#share-save").click();
-    await friend.waitForFunction(() => document.querySelector("#toast").textContent === "分享设置已保存");
+    await friend.locator("#detail-dialog .dialog-toast").filter({hasText:"分享设置已保存"}).waitFor();
     const changedShareHtml = await (await fetch(siteUrl)).text();
     assert.match(changedShareHtml, /og:title/);
     assert.equal((await fetch(siteUrl)).headers.get("x-robots-tag"), "noindex");
@@ -357,7 +358,8 @@ const base = "http://127.0.0.1:39997",
     }
     await friend.locator("#password-form [name=username]").fill("xiaolin-renamed");
     await friend.locator("#account-save").click();
-    await friend.locator("#toast").filter({hasText:"用户名已保存"}).waitFor();
+    await friend.getByRole("status").filter({hasText:"用户名已更新"}).waitFor();
+    await friend.getByText("作品、链接与 Agent 连接保持不变。", {exact:true}).waitFor();
     assert.equal(runtime.db.prepare("SELECT username FROM members WHERE username=?").get("xiaolin-renamed").username,"xiaolin-renamed");
     await friend.locator("#password-form [name=username]").fill("xiaolin");
     await Promise.all([friend.waitForResponse(r=>r.url().endsWith("/api/v1/account")&&r.request().method()==="PATCH"&&r.ok()),friend.locator("#account-save").click()]);
@@ -367,6 +369,7 @@ const base = "http://127.0.0.1:39997",
     const key = await friend.locator("#key-value").inputValue();
     assert.ok(key.length >= 32);
     await friend.getByRole("button", { name: "复制令牌" }).click();
+    await friend.getByRole("button", { name: "已复制 ✓" }).waitFor();
     assert.equal(
       await friend.evaluate(() => navigator.clipboard.readText()),
       key,
@@ -375,7 +378,15 @@ const base = "http://127.0.0.1:39997",
       .locator("#password-form [name=password]")
       .fill("qa-new-password-654321");
     await friend.getByRole("button", { name: "保存账号" }).click();
-    await friend.locator("#toast").filter({ hasText: "密码已保存" }).waitFor();
+    await friend.getByRole("status").filter({ hasText: "密码修改成功" }).waitFor();
+    for (const size of [{width:1440,height:1000},{width:390,height:844}]) {
+      await friend.setViewportSize(size);
+      await friend.screenshot({path:path.join(root,`artifacts/account-success-${size.width}.png`)});
+      assert.equal(await friend.locator("#account-status").evaluate(el=>el.closest("dialog")?.open),true);
+      assert.ok(await friend.locator("#account-status").evaluate(el=>el.getBoundingClientRect().width>0));
+      if (size.width === 390) assert.ok(await friend.locator("#account-save").evaluate(el=>el.getBoundingClientRect().height>=44));
+    }
+    await friend.getByRole("button", {name:"保存账号"}).waitFor({timeout:2500});
     await friend.locator("#account-dialog [data-close]").click();
     await friend.getByRole("button", { name: "退出", exact: true }).click();
     await friend.locator("#login-button").click();
