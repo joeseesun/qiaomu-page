@@ -18,7 +18,7 @@ const canonicalConfigPath = path.join(
     (fs.existsSync(canonicalConfigPath) || !fs.existsSync(legacyConfigPath)
       ? canonicalConfigPath
       : legacyConfigPath);
-const CLI_VERSION = "1.11.0";
+const CLI_VERSION = "1.12.0";
 const { createHash, randomUUID } = require("node:crypto");
 let flags = {},
   args = [];
@@ -128,6 +128,46 @@ function normalizeUrl(raw) {
     );
   }
   return u.origin;
+}
+const conversationExamples = [
+  "发布这个网页到 QP",
+  "更新 QP 上的这个作品，保持链接不变",
+  "列出我在 QP 上的作品",
+  "下架这个作品",
+  "恢复刚才下架的作品",
+];
+function onboardingCompletion(url, passwordFile) {
+  return {
+    completed: true,
+    managementUrl: url + "/dashboard",
+    passwordChange:
+      "Sign in, open 账号, then use 账号设置 → 设置新密码.",
+    conversationExamples,
+    noWorkPublished: true,
+    ...(passwordFile ? { passwordFile } : {}),
+  };
+}
+function onboardingRequired(url) {
+  return {
+    required: true,
+    next: "Ask the user only for a username, then run account --username NAME --generate-password --output PRIVATE_NEW_FILE --json.",
+    password:
+      "The CLI saves the initial password in a private mode-600 file. Link that file without displaying its contents.",
+    managementUrl: url + "/dashboard",
+    passwordChange:
+      "After onboarding, sign in, open 账号, then use 账号设置 → 设置新密码.",
+    conversationExamples,
+    noWorkPublished: true,
+  };
+}
+function formatOnboardingCompletion(guide) {
+  return [
+    `Manage Qiaomu Page: ${guide.managementUrl}`,
+    "Change password: sign in, open 账号, then use 账号设置 → 设置新密码.",
+    "Try saying:",
+    ...guide.conversationExamples.map((example) => `- ${example}`),
+    "No work was published during setup.",
+  ].join("\n");
 }
 function saveConfig(config) {
   fs.mkdirSync(path.dirname(configPath), { recursive: true, mode: 0o700 });
@@ -264,10 +304,16 @@ async function main() {
     if (config && !config.pending) {
       try {
         const result = await request(config, "/api/v1/me");
+        result.onboarding = result.member?.registered
+          ? onboardingCompletion(url)
+          : onboardingRequired(url);
         return console.log(
           flags.json
             ? JSON.stringify(result)
-            : "Already connected. Existing configuration preserved.",
+            : result.onboarding.completed
+              ? "Already connected. Existing configuration preserved.\n" +
+                formatOnboardingCompletion(result.onboarding)
+              : "Already connected. Existing configuration preserved. Account onboarding is required: ask only for a username, then generate the initial password into a private file.",
         );
       } catch (error) {
         if (error.status !== 401) throw error;
@@ -294,11 +340,7 @@ async function main() {
     delete config.pending;
     saveConfig(config);
     const result = await request(config, "/api/v1/me");
-    result.onboarding = {
-      required: true,
-      next: "Ask the user only for a username, then run account --username NAME --generate-password --output PRIVATE_NEW_FILE --json.",
-      password: "The CLI saves the initial password in a private mode-600 file. Link that file without displaying its contents.",
-    };
+    result.onboarding = onboardingRequired(url);
     return console.log(
       flags.json
         ? JSON.stringify(result)
@@ -331,10 +373,16 @@ async function main() {
     if (config && !config.pending) {
       try {
         const result = await request(config, "/api/v1/me");
+        result.onboarding = result.member?.registered
+          ? onboardingCompletion(url)
+          : onboardingRequired(url);
         return console.log(
           flags.json
             ? JSON.stringify(result)
-            : "Already connected. Existing configuration preserved.",
+            : result.onboarding.completed
+              ? "Already connected. Existing configuration preserved.\n" +
+                formatOnboardingCompletion(result.onboarding)
+              : "Already connected. Existing configuration preserved. Account onboarding is required: ask only for a username, then generate the initial password into a private file.",
         );
       } catch (error) {
         if (error.status !== 401) throw error;
@@ -382,18 +430,15 @@ async function main() {
     saveConfig(config);
     const result = await request(config, "/api/v1/me");
     if (result.member && !result.member.registered) {
-      result.onboarding = {
-        required: true,
-        next: "Ask the user only for a username, then run account --username NAME --generate-password --output PRIVATE_NEW_FILE --json.",
-        password: "The CLI saves a 12-character initial password in a private mode-600 file. Link that file without displaying its contents.",
-        later: "The user can replace the password in Qiaomu Page account settings.",
-      };
-    }
+      result.onboarding = onboardingRequired(url);
+    } else if (result.member?.registered)
+      result.onboarding = onboardingCompletion(url);
     return console.log(
       flags.json
         ? JSON.stringify(result)
         : result.member?.registered
-          ? "Connected. Existing registered account preserved."
+          ? "Connected. Existing registered account preserved.\n" +
+            formatOnboardingCompletion(result.onboarding)
           : "Connected. Private credentials saved. Account onboarding is required: ask only for a username, then generate the initial password into a private file with the account command.",
     );
   }
@@ -407,12 +452,24 @@ async function main() {
     const config = { url: normalizeUrl(flags.url), token: input.trim() };
     if (config.token.length < 32)
       throw new Error("Token must contain at least 32 characters.");
-    await request(config, "/api/v1/me");
+    const identity = await request(config, "/api/v1/me");
     saveConfig(config);
+    const onboarding = identity.member?.registered
+      ? onboardingCompletion(config.url)
+      : onboardingRequired(config.url);
     return console.log(
       flags.json
-        ? JSON.stringify({ ok: true, url: config.url })
-        : `Connected to ${config.url}. Token saved privately.`,
+        ? JSON.stringify({
+            ok: true,
+            url: config.url,
+            member: identity.member,
+            onboarding,
+          })
+        : `Connected to ${config.url}. Token saved privately.\n${
+            onboarding.completed
+              ? formatOnboardingCompletion(onboarding)
+              : "Account onboarding is still required. Ask only for a username, then generate the initial password into a private file."
+          }`,
     );
   }
   let config = {};
@@ -469,6 +526,7 @@ async function main() {
     if (flags.output && !flags["generate-password"])
       throw new Error("Account --output is only for a generated password.");
     result = await request(config, "/api/v1/account");
+    const wasRegistered = !!result.account.registered;
     let password, savedPath;
     if (flags["password-stdin"] || flags["verify-password-stdin"])
       password = await passwordInput();
@@ -512,6 +570,8 @@ async function main() {
         }
         result.identity = (await request(config, "/api/v1/me")).member;
         if (savedPath) result.passwordFile = savedPath;
+        if (!wasRegistered && result.account.registered)
+          result.onboarding = onboardingCompletion(config.url, savedPath);
       } catch (error) {
         if (savedPath)
           error.message +=
@@ -524,7 +584,7 @@ async function main() {
     if (!flags.json)
       return console.log(
         result.account
-          ? `Account: ${result.account.username} (#${result.account.id}, ${result.account.role})\nPassword configured: ${result.account.registered}${savedPath ? "\nPassword saved privately: " + savedPath : ""}`
+          ? `Account: ${result.account.username} (#${result.account.id}, ${result.account.role})\nPassword configured: ${result.account.registered}${savedPath ? "\nPassword saved privately: " + savedPath : ""}${result.onboarding ? "\n" + formatOnboardingCompletion(result.onboarding) : ""}`
           : "Password verified.",
       );
   } else if (command === "visibility") {

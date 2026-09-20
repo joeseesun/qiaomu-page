@@ -90,7 +90,7 @@ For local development: `npm ci`, `npm run setup`, `npm start`, then open [the lo
 
 Copy the prompt from your instance or use your personal invitation prompt. Your agent reads that server's `/skill.md`, installs the standalone CLI, redeems the code through stdin, and stores credentials privately. Setup does not publish any files automatically.
 
-The product name is **Qiaomu Page** and its conversation shorthand is **QP** (for example, “发布到 QP”). Legacy Quickshare and QS wording is recognized only to preserve existing connections.
+The product name is **Qiaomu Page** and its conversation shorthand is **QP**. Users do not need to memorize CLI commands: they can say “发布这个网页到 QP”, “更新 QP 上的这个作品，保持链接不变”, “列出我在 QP 上的作品”, “下架这个作品”, or “恢复刚才下架的作品”. Legacy Quickshare and QS wording is recognized only to preserve existing connections.
 
 After connecting, use the installed CLI path:
 
