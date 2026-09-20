@@ -679,14 +679,15 @@ $("invite-dialog").onclose = () => {
 function authMode(mode) {
   const joining = mode === "invite";
   $("auth-form").dataset.mode = mode;
-  $("auth-title").textContent = joining ? "你的作品，即刻出发。" : "欢迎回来";
+  $("auth-title").textContent = joining ? "注册你的发布空间" : "欢迎回来";
   $("join-field").hidden = !joining;
   $("join-code").required = joining;
-  $("auth-credentials").hidden = joining;
-  for (const name of ["username", "password"]) $("auth-form").elements[name].required = !joining;
+  $("auth-credentials").hidden = false;
+  for (const name of ["username", "password"]) $("auth-form").elements[name].required = true;
+  $("auth-form").elements.password.autocomplete = joining ? "new-password" : "current-password";
   $("invite-agent").hidden = !joining;
-  $("auth-submit").textContent = joining ? "免注册开始使用" : "登录";
-  $("auth-switch").textContent = joining ? "已有账号？登录" : "有邀请码？直接开始";
+  $("auth-submit").textContent = joining ? "注册并开始使用" : "登录";
+  $("auth-switch").textContent = joining ? "已有账号？登录" : "有邀请码？注册空间";
   $("auth-error").textContent = "";
 }
 $("login-button").onclick = () => { authMode("login"); $("auth-dialog").showModal(); };
@@ -749,7 +750,7 @@ $("auth-form").onsubmit = async (e) => {
   $("auth-error").textContent = "";
   try {
     const joining = $("auth-form").dataset.mode === "invite";
-    await api(joining ? "/auth/accept" : "/auth/login", "POST", {
+    await api(joining ? "/auth/join" : "/auth/login", "POST", {
       username: e.target.elements.username.value,
       password: e.target.elements.password.value,
       ...(joining ? { invite: readInvitation() } : {}),

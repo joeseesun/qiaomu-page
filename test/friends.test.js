@@ -480,11 +480,15 @@ test("public agent setup uses the configured origin without credentials or publi
   assert.match(skill, /^---\nname: qiaomu-quickshare\ndescription: .+\nmetadata:/);
   assert.ok(skill.includes(origin + "/client/quickshare.js"));
   assert.ok(skill.includes("doctor --json"));
+  assert.ok(skill.includes("account --username NAME --generate-password"));
+  assert.ok(skill.includes("clickable local link"));
   const promptResponse = await call("/agent-prompt.txt", "GET", undefined, { headers });
   assert.equal(promptResponse.status, 200);
   const prompt = await promptResponse.text();
   assert.ok(prompt.includes(origin + "/skill.md"));
   assert.ok(prompt.includes("本次不自动上传文件"));
+  assert.ok(prompt.includes("只询问我想要的用户名"));
+  assert.ok(prompt.includes("12 位"));
   for (const endpoint of ["/", "/publish"]) {
     const response = await call(endpoint);
     assert.equal(response.status, 200);

@@ -7,7 +7,7 @@ const { parseArgs } = require("node:util");
 const configPath =
   process.env.QUICKSHARE_CONFIG ||
   path.join(os.homedir(), ".config/quickshare/config.json");
-const CLI_VERSION = "1.6.0";
+const CLI_VERSION = "1.7.0";
 const { createHash, randomUUID } = require("node:crypto");
 let flags = {},
   args = [];
@@ -61,7 +61,7 @@ const help = `QiaoPage / Quickshare Agent CLI ${CLI_VERSION}
   quickshare whoami --json        # live identity, connection, permissions and usage
   quickshare capabilities --json  # live tools, limits, defaults and boundaries
   quickshare account [--username NAME] [--password-stdin]
-  quickshare account --generate-password --output PRIVATE_NEW_FILE
+  quickshare account [--username NAME] --generate-password --output PRIVATE_NEW_FILE # 12-character initial password
   quickshare account --verify-password-stdin
   quickshare visibility SLUG [--gallery true|false] [--published true|false]
   quickshare access SLUG [--mode public|private|link]
@@ -78,7 +78,7 @@ const help = `QiaoPage / Quickshare Agent CLI ${CLI_VERSION}
   Secrets only through stdin/private files, never command arguments.
 
 Publish FILE or DIRECTORY.
-  quickshare join --url URL --invite-stdin # activate an invitation without registration
+  quickshare join --url URL --invite-stdin # activate an invitation, then finish account onboarding
   quickshare connect --url URL --code-stdin # connect an existing space
   quickshare dashboard  # one-use browser login link
   quickshare invite NAME # one-use invitation, admin only
@@ -143,6 +143,19 @@ async function privateInput() {
 function writePrivate(file, text) {
   fs.writeFileSync(file, text, { flag: "wx", mode: 0o600 });
   return path.resolve(file);
+}
+function generateInitialPassword(length = 12) {
+  const alphabet =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const limit = 256 - (256 % alphabet.length);
+  let value = "";
+  while (value.length < length) {
+    for (const byte of require("node:crypto").randomBytes(length * 2)) {
+      if (byte < limit) value += alphabet[byte % alphabet.length];
+      if (value.length === length) break;
+    }
+  }
+  return value;
 }
 async function passwordInput() {
   if (process.stdin.isTTY)
@@ -291,10 +304,20 @@ async function main() {
     delete config.pending;
     saveConfig(config);
     const result = await request(config, "/api/v1/me");
+    if (result.member && !result.member.registered) {
+      result.onboarding = {
+        required: true,
+        next: "Ask the user only for a username, then run account --username NAME --generate-password --output PRIVATE_NEW_FILE --json.",
+        password: "The CLI saves a 12-character initial password in a private mode-600 file. Link that file without displaying its contents.",
+        later: "The user can replace the password in QiaoPage account settings.",
+      };
+    }
     return console.log(
       flags.json
         ? JSON.stringify(result)
-        : "Connected. Private credentials saved; registration is optional.",
+        : result.member?.registered
+          ? "Connected. Existing registered account preserved."
+          : "Connected. Private credentials saved. Account onboarding is required: ask only for a username, then generate the initial password into a private file with the account command.",
     );
   }
   if (command === "login") {
@@ -369,7 +392,7 @@ async function main() {
     if (flags["password-stdin"] || flags["verify-password-stdin"])
       password = await passwordInput();
     if (flags["generate-password"]) {
-      password = require("node:crypto").randomBytes(24).toString("base64url");
+      password = generateInitialPassword();
       savedPath = writePrivate(flags.output, password + "\n");
     }
     if (flags["verify-password-stdin"]) {

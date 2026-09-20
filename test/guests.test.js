@@ -87,9 +87,15 @@ test("downloaded CLI redeems invitation through stdin, retains private config an
   const invitation=await invite();
   const joined=await run(["join","--url",url,"--invite-stdin"],invitation.url);
   assert.equal(joined.code,0,joined.stderr);
+  assert.match(joined.stdout,/Account onboarding is required/);
   const saved=JSON.parse(fs.readFileSync(config));assert.equal(saved.pending,undefined);assert.equal(fs.statSync(config).mode&0o777,0o600);
   assert.ok(!joined.stdout.includes(saved.token)&&!joined.stderr.includes(saved.token)&&!joined.stdout.includes(invitation.code));
   const me=await run(["doctor","--json"]);assert.equal(me.code,0,me.stderr);assert.equal(JSON.parse(me.stdout).member.registered,false);
+  const initialPassword=path.join(dir,"initial-password.txt");
+  const onboarded=await run(["account","--username","friendqa","--generate-password","--output",initialPassword,"--json"]);
+  assert.equal(onboarded.code,0,onboarded.stderr);assert.equal(JSON.parse(onboarded.stdout).account.registered,true);assert.equal(JSON.parse(onboarded.stdout).passwordVerified,true);
+  const generatedPassword=fs.readFileSync(initialPassword,"utf8").trim();assert.equal(generatedPassword.length,12);assert.equal(fs.statSync(initialPassword).mode&0o777,0o600);assert.ok(!onboarded.stdout.includes(generatedPassword));
+  assert.equal(JSON.parse((await run(["doctor","--json"])).stdout).member.registered,true);
   const unused=await invite();assert.equal((await run(["join","--url",url,"--invite-stdin"],unused.code)).code,0);
   assert.equal(db.prepare("SELECT used FROM invites WHERE hash=?").get(hash(unused.code.replaceAll("-",""))).used,0);
   const original=fs.readFileSync(config,"utf8");assert.notEqual((await run(["join","--url","https://other.example","--invite-stdin"],unused.code)).code,0);assert.equal(fs.readFileSync(config,"utf8"),original);
