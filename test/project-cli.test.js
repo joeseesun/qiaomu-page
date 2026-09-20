@@ -96,6 +96,31 @@ test("project publish updates a linked site, --new is explicit, and status carri
   const third = await f.run(["update", f.source]);
   assert.equal(third.data.work.slug, other.data.work.slug);
 });
+test("directory publishing infers a clean display title without rewriting source", async (t) => {
+  const f = await setup(t),
+    site = path.join(f.dir, "random-staging-name"),
+    index = path.join(site, "index.html");
+  fs.mkdirSync(site);
+  const original = '<!doctype html><html><head><script>const fake="<title>Wrong</title>"</script><title>Jev &amp; Friends</title></head><body><h1>Fallback title</h1></body></html>';
+  fs.writeFileSync(index, original);
+  const first = await f.run(["publish", site]);
+  assert.equal(first.code, 0, first.err);
+  assert.equal(first.data.work.title, "Jev & Friends");
+  assert.equal(fs.readFileSync(index, "utf8"), original);
+  fs.writeFileSync(index, original.replace("Jev &amp; Friends", "Changed source title"));
+  const stable = await f.run(["publish", site]);
+  assert.equal(stable.data.work.title, "Jev & Friends");
+  const explicit = await f.run(["publish", site, "--title", "Chosen display title"]);
+  assert.equal(explicit.data.work.title, "Chosen display title");
+  assert.match(fs.readFileSync(index, "utf8"), /Changed source title/);
+
+  const headingSite = path.join(f.dir, "another-random-folder"),
+    headingIndex = path.join(headingSite, "index.html");
+  fs.mkdirSync(headingSite);
+  fs.writeFileSync(headingIndex, "<main><h1>Hello <span>World</span></h1></main>");
+  const heading = await f.run(["publish", headingSite]);
+  assert.equal(heading.data.work.title, "Hello World");
+});
 test("project identity and remote revision conflicts fail closed with actionable errors", async (t) => {
   const f = await setup(t);
   const first = await f.run(["publish", f.source]);

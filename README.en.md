@@ -107,6 +107,8 @@ node quickshare.js account --json
 
 Replace `RETURNED_SLUG` with the actual publication result. Without an explicit configured instance, the CLI stops instead of sending credentials to another server. The `quickshare` command, `qiaomu-quickshare` Skill ID, environment variables, and private configuration paths are retained for compatibility with existing Quickshare installations. No data migration is needed for the rebrand.
 
+CLI 1.8 selects a clean work title on first publication: explicit `--title`, then the source HTML `<title>`, first `<h1>`, or Markdown level-one heading, and only then a humanized source name. Updates preserve the existing work title unless a new `--title` is explicit. This changes QiaoPage metadata only; it never rewrites HTML, Markdown, or build output, and it never derives or changes the account username from published content.
+
 CLI 1.6 associates a source with its site: subsequent `publish` updates it, `update` requires an existing association, and `publish --new` creates another site. Attach legacy sources first with `link SLUG SOURCE`. Keep share receipts outside the upload tree. See [CLI and access design](docs/cli-and-access.md).
 
 ## Limits and trust

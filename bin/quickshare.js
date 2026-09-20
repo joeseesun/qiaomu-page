@@ -7,7 +7,7 @@ const { parseArgs } = require("node:util");
 const configPath =
   process.env.QUICKSHARE_CONFIG ||
   path.join(os.homedir(), ".config/quickshare/config.json");
-const CLI_VERSION = "1.7.0";
+const CLI_VERSION = "1.8.0";
 const { createHash, randomUUID } = require("node:crypto");
 let flags = {},
   args = [];
@@ -1172,7 +1172,7 @@ async function documentBody(file, flags, old = {}) {
   // Markdown is rendered on the server; the original source stays in the published file tree.
   const rendered = {
     html: source,
-    title: isMarkdown ? source.match(/^# +(.+)$/m)?.[1] : undefined,
+    title: inferSourceTitle(source, isMarkdown),
   };
   let cover;
   if (flags.cover && flags.capture)
@@ -1200,7 +1200,7 @@ async function documentBody(file, flags, old = {}) {
       flags.title ??
       old.title ??
       rendered.title ??
-      path.basename(file, path.extname(file)),
+      fallbackTitle(file),
     description: flags.description ?? old.description ?? "",
     tags:
       flags.tags === undefined
@@ -1214,6 +1214,56 @@ async function documentBody(file, flags, old = {}) {
     published: flags.draft ? false : (old.published ?? true),
     ...(old.revision ? { revision: old.revision } : {}),
   };
+}
+function inferSourceTitle(source, isMarkdown) {
+  if (isMarkdown) return normalizeInferredTitle(source.match(/^# +(.+)$/m)?.[1]);
+  const withoutExecutableText = source
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<(script|style|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, " ");
+  const head = /<head\b[^>]*>([\s\S]*?)<\/head\s*>/i.exec(
+    withoutExecutableText,
+  )?.[1];
+  const title = /<title\b[^>]*>([\s\S]*?)<\/title\s*>/i.exec(
+    head || withoutExecutableText,
+  )?.[1];
+  return (
+    normalizeInferredTitle(title) ||
+    normalizeInferredTitle(
+      /<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/i.exec(withoutExecutableText)?.[1],
+    )
+  );
+}
+function normalizeInferredTitle(value) {
+  if (!value) return undefined;
+  const entities = {
+    amp: "&",
+    apos: "'",
+    gt: ">",
+    lt: "<",
+    nbsp: " ",
+    quot: '"',
+  };
+  const normalized = value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&(#(?:x[0-9a-f]+|\d+)|[a-z]+);/gi, (match, entity) => {
+      if (entity[0] !== "#") return entities[entity.toLowerCase()] ?? match;
+      const hexadecimal = entity[1]?.toLowerCase() === "x";
+      const code = Number.parseInt(entity.slice(hexadecimal ? 2 : 1), hexadecimal ? 16 : 10);
+      return Number.isSafeInteger(code) && code > 0 && code <= 0x10ffff
+        ? String.fromCodePoint(code)
+        : match;
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+  return normalized
+    ? Array.from(normalized).slice(0, 120).join("")
+    : undefined;
+}
+function fallbackTitle(file) {
+  let base = path.basename(file, path.extname(file));
+  if (/^(?:build|dist|out|public|site|www)$/i.test(base))
+    base = path.basename(path.dirname(file));
+  return base.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
 }
 async function request(config, endpoint, method = "GET", body) {
   const serialized = body ? JSON.stringify(body) : undefined;
