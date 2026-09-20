@@ -27,7 +27,7 @@ node quickshare.js capabilities --json
 node quickshare.js account --username NEW_NAME
 node quickshare.js account --generate-password --output PRIVATE_NEW_FILE
 node quickshare.js sharing my-site --preview --share-enabled true --output preview.png</pre><p class="hint">生成的密码只保存到本地私密文件，不输出到聊天。预览不会保存分享设置。</p></details>
-    <details><summary>网站运行有哪些限制？</summary><p>这是静态托管服务。前端项目需要先构建，再发布产物；CSS、JavaScript、字体和图片使用相对路径。页面在隔离沙箱里运行，暂不支持 localStorage、Service Worker、服务端代码和依赖主站登录凭据的请求。</p></details>
+    <details><summary>网站运行有哪些限制？</summary><p>这是静态托管服务。前端项目需要先构建，再发布产物；CSS、JavaScript、字体和图片使用相对路径。配置账号短网址后，同一账号的公开项目可以使用该账号域的 localStorage；管理站登录凭据、管理 API、Service Worker 和服务端代码始终不可用。</p></details>
   </section>
 </main>
 <%- include('footer') %>

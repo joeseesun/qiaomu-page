@@ -4,6 +4,6 @@
 
 报告漏洞时优先使用 GitHub Private vulnerability reporting（若仓库已启用），或通过维护者 [X](https://x.com/vista8) 私下联系。不要公开有效凭据、他人内容或可直接利用的生产细节。
 
-上传内容必须保持 opaque sandbox；管理 API 不向上传内容开放 CORS。普通成员只能管理自己的内容。任何拿到已发布链接的人均可访问该网站；不要上传密码、个人敏感数据或尚未准备公开的文件。
+旧入口、私密内容和受限链接必须保持 opaque sandbox；公开作品只有在独立于管理站的账号内容域中才能启用同源存储。同一账号的公开作品共享 origin，因此不要在其中保存敏感数据；不同账号子域仍隔离。管理会话必须使用 host-only `__Host-` Cookie，管理 API 不向上传内容开放 CORS，Service Worker 始终禁用。普通成员只能管理自己的内容。任何拿到已发布链接的人均可访问该网站；不要上传密码、个人敏感数据或尚未准备公开的文件。
 
 升级前备份数据。已有多成员数据不能回滚到忽略 owner_id 或 listed 的旧版本。Cloudflare 使用 Durable Objects + 私有 R2；Vercel 使用 Turso + 私有 Blob。不要把本地 SQLite 或文件存储放到临时磁盘上承载真实数据。

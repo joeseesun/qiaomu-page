@@ -10,9 +10,9 @@
 
 业务规则共用：账号、邀请、所有权、配额、幂等 requestId、稳定 slug、revision CAS、历史恢复、opaque sandbox 和可选分享增强。新默认仍为不进入展厅、凭链接访问；不添加水印或署名。
 
-可选的 `CONTENT_ORIGIN_TEMPLATE` 为公开作品分配独立内容 origin，标签按“用户名 + 作品名 + 短码”在首次发布时生成并持久化。每个平台都必须在启用前配好通配 DNS/TLS 和 Host 路由。旧 `/s/slug` 保留并可跳转至内容 origin；私密、受限链接及未配置实例继续使用 opaque sandbox。禁止在管理域的 `/s/*` 上直接加入 `allow-same-origin`。
+推荐的 `ACCOUNT_ORIGIN_TEMPLATE` 为每个账号分配固定子域，并为作品分配固定路径，例如 `https://alice.example.com/my-tool/`。账号 handle 与项目 path 都在首次分配后持久化，用户名和标题后续可独立修改；重名 path 才追加数字。每个平台启用前必须配好通配 DNS/TLS、Host 路由并确认管理会话使用 host-only Cookie。同一账号的公开作品共享 origin，不同账号由子域隔离。旧 `/s/slug` 与 `CONTENT_ORIGIN_TEMPLATE` 作品子域保留为兼容入口并跳转到首选短网址；私密、受限和未配置实例继续使用 opaque sandbox。
 
-VPS/Nginx 参考配置位于 `deploy/nginx-pages.t5t6.com.conf`；通配证书必须使用 DNS-01 自动续期，并使用仅允许 DNS 验证记录操作的独立凭据。`deploy/qiaopage-acme.*` 提供 systemd 每日续期检查示例；凭据和私钥不得进入仓库。
+VPS/Nginx 的旧作品域和账号短网址参考配置分别位于 `deploy/nginx-pages.t5t6.com.conf` 与 `deploy/nginx-accounts.t5t6.com.conf`；通配证书必须使用 DNS-01 自动续期，并使用仅允许 DNS 验证记录操作的独立凭据。`deploy/qiaopage-acme.*` 提供 systemd 每日续期检查示例；凭据和私钥不得进入仓库。
 
 ## 为什么 Cloudflare 使用 Durable Object
 

@@ -9,6 +9,8 @@ let member,
   detail = null,
   inviteCode = new URLSearchParams(location.hash.slice(1)).get("invite");
 let originSuggestionSequence = 0;
+let contentPathEdited = false;
+let recommendedContentPath = "";
 const grant = new URLSearchParams(location.hash.slice(1)).get("code");
 if (location.hash) history.replaceState(null, "", location.pathname);
 async function api(url, method = "GET", body) {
@@ -382,9 +384,22 @@ async function selectFiles(input) {
   $("file-summary").textContent =
     `${files.length} 个文件 · ${(files.reduce((n, x) => n + x.file.size, 0) / 1024).toFixed(1)} KB${skipped ? " · 已排除 " + skipped + " 个隐藏或敏感文件" : ""}`;
   const f = $("publish-form");
+  contentPathEdited = false;
+  recommendedContentPath = "";
   f.elements.title.value =
     editing?.title || input[0].file.name.replace(/\.[^.]+$/, "");
-  await suggestContentOrigin();
+  if (editing) {
+    f.elements.contentPath.value = editing.content_path || "";
+    $("content-path-field").hidden = !editing.content_path;
+    $("content-path-hint").hidden = !editing.content_path;
+    f.elements.contentPath.readOnly = true;
+    $("content-origin-suggestion").textContent = editing.contentUrl
+      ? "公开网址：" + editing.contentUrl.replace(/^https?:\/\//, "")
+      : "";
+  } else {
+    f.elements.contentPath.readOnly = false;
+    await suggestContentOrigin();
+  }
   f.elements.slug.value = editing?.slug || "";
   f.elements.slug.readOnly = !!editing;
   $("publish-link-settings").open = false;
@@ -403,15 +418,23 @@ async function suggestContentOrigin() {
     const result = await api("/api/v1/content-origins/suggestions?title=" + encodeURIComponent(title));
     if (sequence !== originSuggestionSequence) return;
     const suggestion = result.enabled ? result.suggestions[0] : null;
-    $("publish-form").elements.contentLabel.value = suggestion?.label || "";
+    const form = $("publish-form");
+    form.elements.contentLabel.value = suggestion?.label || "";
+    recommendedContentPath = suggestion?.path || "";
+    if (!contentPathEdited)
+      form.elements.contentPath.value = recommendedContentPath;
+    $("content-path-field").hidden = result.mode !== "account";
+    $("content-path-hint").hidden = result.mode !== "account";
     output.textContent = suggestion?.url
-      ? "推荐独立网址：" + suggestion.url.replace(/^https?:\/\//, "") + "（发布后固定）"
+      ? "推荐网址：" + suggestion.url.replace(/^https?:\/\//, "") + "（发布后固定）"
       : "将自动生成稳定链接；当前实例未启用独立内容域。";
   } catch { if (sequence === originSuggestionSequence) output.textContent = ""; }
 }
 function clearFiles() {
   selected = [];
   editing = null;
+  contentPathEdited = false;
+  recommendedContentPath = "";
   $("publish-heading").textContent = "把文件放到这里";
   $("publish-form").reset();
   $("publish-form").hidden = true;
@@ -492,8 +515,14 @@ $("dropzone").ondrop = action(async (e) => {
 $("clear-files").onclick = clearFiles;
 $("publish-another").onclick = clearFiles;
 $("publish-form").elements.title.addEventListener("input", () => {
+  if (!contentPathEdited)
+    $("publish-form").elements.contentPath.value = "";
   clearTimeout(suggestContentOrigin.timer);
   suggestContentOrigin.timer = setTimeout(suggestContentOrigin, 180);
+});
+$("publish-form").elements.contentPath.addEventListener("input", () => {
+  contentPathEdited =
+    $("publish-form").elements.contentPath.value !== recommendedContentPath;
 });
 $("publish-form").onsubmit = async (e) => {
   e.preventDefault();
@@ -527,6 +556,8 @@ $("publish-form").onsubmit = async (e) => {
     if (!editing) {
       if (f.elements.slug.value.trim()) body.slug = f.elements.slug.value.trim();
       if (f.elements.contentLabel.value) body.contentLabel = f.elements.contentLabel.value;
+      if (contentPathEdited && f.elements.contentPath.value)
+        body.contentPath = f.elements.contentPath.value;
       const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify({member: member.id, body})));
       pendingKey = "quickshare-publish-" + Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
       // Only an opaque request ID is stored; source files and credentials stay out of browser storage.

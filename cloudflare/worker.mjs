@@ -43,6 +43,7 @@ export class Quickshare extends DurableObject {
       token: this.env.QUICKSHARE_TOKEN,
       baseUrl: this.env.BASE_URL || origin,
       contentOriginTemplate: this.env.CONTENT_ORIGIN_TEMPLATE,
+      accountOriginTemplate: this.env.ACCOUNT_ORIGIN_TEMPLATE,
       database: new database.DurableDatabase(this.ctx.storage),
       objects: new storage.R2Objects(this.env.OBJECTS),
       render,
