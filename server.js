@@ -899,7 +899,7 @@ async function createApp(options = {}) {
       if (!bytes) return res.status(404).type("text").send("文件不存在。");
       res.set({
         "Content-Security-Policy":
-          `sandbox allow-scripts allow-forms allow-modals allow-downloads${res.locals.contentOrigin ? " allow-same-origin" : ""}; frame-ancestors ${res.locals.contentOrigin ? "'none'" : "'self'"}; base-uri 'none'`,
+          `sandbox allow-scripts allow-forms allow-modals allow-downloads${res.locals.contentOrigin ? " allow-same-origin" : ""}; worker-src 'none'; frame-ancestors ${res.locals.contentOrigin ? "'none'" : "'self'"}; base-uri 'none'`,
         "Cache-Control": "no-store",
         "X-Robots-Tag": "noindex",
         "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",

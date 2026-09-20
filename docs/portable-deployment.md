@@ -12,6 +12,8 @@
 
 可选的 `CONTENT_ORIGIN_TEMPLATE` 为公开作品分配独立内容 origin，标签按“用户名 + 作品名 + 短码”在首次发布时生成并持久化。每个平台都必须在启用前配好通配 DNS/TLS 和 Host 路由。旧 `/s/slug` 保留并可跳转至内容 origin；私密、受限链接及未配置实例继续使用 opaque sandbox。禁止在管理域的 `/s/*` 上直接加入 `allow-same-origin`。
 
+VPS/Nginx 参考配置位于 `deploy/nginx-pages.t5t6.com.conf`；通配证书必须使用 DNS-01 自动续期，并使用仅允许 DNS 验证记录操作的独立凭据。`deploy/qiaopage-acme.*` 提供 systemd 每日续期检查示例；凭据和私钥不得进入仓库。
+
 ## 为什么 Cloudflare 使用 Durable Object
 
 现有账号和发布事务包含条件读取、身份复验与多步更新，需要真正的事务上下文。SQLite Durable Object 支持在 `storage.transaction` 内运行 SQL，使这些规则无需改写成分散的 D1 batch。每个安装一个 `primary` 对象，异步事务通过队列隔离；文件内容移到 R2，因此数据库行不承载整个网站。
