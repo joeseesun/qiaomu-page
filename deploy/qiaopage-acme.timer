@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily QiaoPage wildcard certificate renewal check
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=4h
+Persistent=true
+Unit=qiaopage-acme.service
+
+[Install]
+WantedBy=timers.target

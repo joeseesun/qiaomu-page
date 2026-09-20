@@ -1,0 +1,9 @@
+[Unit]
+Description=Renew QiaoPage wildcard content-origin certificate
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/opt/qiaomu-acme/acme.sh --cron --home /root/.acme.sh

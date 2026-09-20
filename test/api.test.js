@@ -210,6 +210,7 @@ test("isolated content origins are stable, username-based and keep management sa
   });
   assert.equal(isolated.status, 200);
   assert.match(isolated.headers["content-security-policy"], /allow-same-origin/);
+  assert.match(isolated.headers["content-security-policy"], /worker-src 'none'/);
   assert.match(isolated.headers["permissions-policy"], /camera=\(\)/);
   assert.match(isolated.body, /Try/);
 

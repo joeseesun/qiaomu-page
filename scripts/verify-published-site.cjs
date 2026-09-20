@@ -7,7 +7,19 @@ const target = new URL(raw);
 if (!["https:", "http:"].includes(target.protocol)) throw new Error("Use an HTTP(S) URL.");
 
 (async () => {
-  const browser = await chromium.launch({ headless: true });
+  let browser;
+  try {
+    browser = await chromium.launch({ channel: "chrome", headless: true });
+  } catch (chromeError) {
+    try {
+      browser = await chromium.launch({ headless: true });
+    } catch (playwrightError) {
+      throw new Error(
+        `Published-site verification needs Google Chrome or Playwright Chromium. ` +
+          `Chrome: ${chromeError.message}; Playwright: ${playwrightError.message}`,
+      );
+    }
+  }
   const results = [];
   try {
     for (const viewport of [
