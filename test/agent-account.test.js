@@ -99,13 +99,13 @@ async function cliFixture(t,fixtureData){
 test("portable CLI discovers permissions, changes own account, stores generated passwords privately and previews without saving",async t=>{
  const f=await fixture(t),{run,dir,config}=await cliFixture(t,f),originalConfig=fs.readFileSync(config,"utf8");
  const who=await run(["whoami"]);assert.equal(who.data.account.id,f.a.id);
- const cap=await run(["capabilities"]);assert.equal(cap.data.cliVersion,"1.6.0");
+ const cap=await run(["capabilities"]);assert.equal(cap.data.cliVersion,"1.7.0");
  const renamed=await run(["account","--username","agent-user"]);assert.equal(renamed.code,0,renamed.stderr);
  const shortPassword=await run(["account","--password-stdin"],"short123\n");assert.equal(shortPassword.code,0,shortPassword.stderr);assert.equal(shortPassword.data.passwordVerified,true);
  const rejectedPassword=await run(["account","--password-stdin"],"short12\n");assert.equal(rejectedPassword.code,2);assert.match(rejectedPassword.stderr,/8–200/);
  const file=path.join(dir,"password.txt"),generated=await run(["account","--generate-password","--output",file]);
  assert.equal(generated.code,0,generated.stderr);assert.equal(generated.data.passwordVerified,true);
- const password=fs.readFileSync(file,"utf8").trim();assert.ok(password.length>=24);assert.equal(fs.statSync(file).mode&0o777,0o600);
+ const password=fs.readFileSync(file,"utf8").trim();assert.equal(password.length,12);assert.match(password,/^[ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789]+$/);assert.equal(fs.statSync(file).mode&0o777,0o600);
  assert.ok(!generated.stdout.includes(password)&&!generated.stderr.includes(password));
  assert.equal((await run(["account","--verify-password-stdin"],password+"\n")).data.valid,true);
  assert.equal((await run(["account","--generate-password","--output",file])).code,2);

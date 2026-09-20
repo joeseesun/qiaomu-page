@@ -17,7 +17,7 @@
       try {
         let text = basePrompt;
         if (button.hasAttribute("data-invite-agent")) {
-          text += "\n\n本次邀请码：" + readInvitation() + "\n自动兑换独立发布空间，无须注册。";
+          text += "\n\n本次邀请码：" + readInvitation() + "\n自动兑换独立发布空间，然后只询问用户名并完成首次注册。";
         } else {
           const me = await fetch("/api/v1/me", {credentials: "same-origin"});
           if (me.ok) {
