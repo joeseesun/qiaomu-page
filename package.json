@@ -25,6 +25,7 @@
     "deploy:vercel": "npx vercel@59.15.1 --prod",
     "verify:cloudflare": "node scripts/verify-cloudflare.cjs",
     "verify:deployment": "node scripts/verify-deployment.cjs",
+    "verify:published": "node scripts/verify-published-site.cjs",
     "install:cloudflare": "node scripts/install-cloud.cjs cloudflare",
     "install:vercel": "node scripts/install-cloud.cjs vercel",
     "build:vercel": "node scripts/build-vercel.cjs",

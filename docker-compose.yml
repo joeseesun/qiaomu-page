@@ -15,6 +15,7 @@ services:
     environment:
       QUICKSHARE_TOKEN: ${QUICKSHARE_TOKEN:?Set a private publish token}
       BASE_URL: ${BASE_URL:-http://127.0.0.1:8090}
+      CONTENT_ORIGIN_TEMPLATE: ${CONTENT_ORIGIN_TEMPLATE:-}
       DATABASE_URL: ${DATABASE_URL:-}
       DATABASE_AUTH_TOKEN: ${DATABASE_AUTH_TOKEN:-}
       OBJECT_STORE: ${OBJECT_STORE:-filesystem}

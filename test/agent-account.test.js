@@ -99,7 +99,7 @@ async function cliFixture(t,fixtureData){
 test("portable CLI discovers permissions, changes own account, stores generated passwords privately and previews without saving",async t=>{
  const f=await fixture(t),{run,dir,config}=await cliFixture(t,f),originalConfig=fs.readFileSync(config,"utf8");
  const who=await run(["whoami"]);assert.equal(who.data.account.id,f.a.id);
- const cap=await run(["capabilities"]);assert.equal(cap.data.cliVersion,"1.8.0");
+ const cap=await run(["capabilities"]);assert.equal(cap.data.cliVersion,"1.9.0");
  const renamed=await run(["account","--username","agent-user"]);assert.equal(renamed.code,0,renamed.stderr);
  const shortPassword=await run(["account","--password-stdin"],"short123\n");assert.equal(shortPassword.code,0,shortPassword.stderr);assert.equal(shortPassword.data.passwordVerified,true);
  const rejectedPassword=await run(["account","--password-stdin"],"short12\n");assert.equal(rejectedPassword.code,2);assert.match(rejectedPassword.stderr,/8–200/);

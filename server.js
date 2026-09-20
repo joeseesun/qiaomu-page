@@ -7,6 +7,7 @@ const { installAccess, isPublic } = require("./lib/access");
 const { accounts } = require("./lib/accounts");
 const { installPrompt, agentSkill, capabilities } = require("./lib/agent");
 const { prepareFiles, validPath, types } = require("./lib/files");
+const contentOrigins = require("./lib/content-origins");
 const {
   installSharing,
   enhance,
@@ -26,7 +27,7 @@ const atomicRoutes = require("./lib/atomic-routes");
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const THEMES = ["sage", "sand", "ink", "rose"];
 const summaryColumns =
-  "slug,title,description,tags,theme,published,revision,created_at,updated_at,cover_mime,owner_id,listed,file_count,byte_size,access_mode,access_revision";
+  "slug,title,description,tags,theme,published,revision,created_at,updated_at,cover_mime,owner_id,listed,file_count,byte_size,access_mode,access_revision,content_label";
 async function createApp(options = {}) {
   const token = options.token || process.env.QUICKSHARE_TOKEN;
   if (!token || token.length < 32)
@@ -61,6 +62,23 @@ async function createApp(options = {}) {
       process.env.BASE_URL ||
       "http://127.0.0.1:3000"
     ).replace(/\/$/, "");
+    const contentOriginTemplate = contentOrigins.template(
+      options.contentOriginTemplate || process.env.CONTENT_ORIGIN_TEMPLATE,
+    );
+    if (
+      contentOriginTemplate &&
+      new URL(contentOriginTemplate.replace("{label}", "probe")).hostname ===
+        new URL(baseUrl).hostname
+    )
+      throw new Error("Content origins must not use the management host.");
+    app.use((req, res, next) => {
+      const label = contentOrigins.labelFromHost(
+        contentOriginTemplate,
+        req.get("host"),
+      );
+      if (label) req.url = `/__qiaopage_content/${label}${req.url}`;
+      next();
+    });
     app.disable("x-powered-by");
     app.set("views", path.join(__dirname, "views/showcase"));
     app.set("view engine", "ejs");
@@ -112,6 +130,28 @@ async function createApp(options = {}) {
         })
         .replace("/", " / ");
     const auth = await accounts(app, db, token, baseUrl);
+    if (contentOriginTemplate) {
+      await db.transaction(async () => {
+        const pending = await db
+          .prepare(
+            "SELECT works.slug,works.title,members.username FROM works JOIN members ON members.id=works.owner_id WHERE works.content_label=''",
+          )
+          .all();
+        for (const work of pending) {
+          for (let attempt = 0; attempt < 10; attempt++) {
+            const label = contentOrigins.candidate(work.username, work.title);
+            try {
+              await db
+                .prepare("UPDATE works SET content_label=? WHERE slug=? AND content_label=''")
+                .run(label, work.slug);
+              break;
+            } catch (error) {
+              if (!/unique/i.test(String(error.message))) throw error;
+            }
+          }
+        }
+      });
+    }
     const guard = auth.guard;
     const indexRoutes = atomicRoutes(app, db, auth.identity);
     const owns = (req, row) =>
@@ -152,8 +192,14 @@ async function createApp(options = {}) {
       baseUrl,
       owns,
     });
-    const rowToWork = (row) =>
-      row && {
+    const rowToWork = (row) => {
+      if (!row) return row;
+      const legacyUrl = `${baseUrl}/s/${row.slug}/`;
+      const contentUrl = contentOrigins.urlFor(
+        contentOriginTemplate,
+        row.content_label,
+      );
+      return {
         ...Object.fromEntries(
           Object.entries(row).filter(
             ([key]) =>
@@ -165,9 +211,12 @@ async function createApp(options = {}) {
         tags: JSON.parse(row.tags),
         published: Boolean(row.published),
         listed: Boolean(row.listed),
-        url: `${baseUrl}/s/${row.slug}/`,
-        embedUrl: `${baseUrl}/s/${row.slug}/`,
+        url: contentUrl || legacyUrl,
+        contentUrl,
+        legacyUrl,
+        embedUrl: legacyUrl,
       };
+    };
     const find = (slug) => repository.get(slug);
     const publicWork = async (req, res, next) => {
       const row = await find(req.params.slug);
@@ -245,8 +294,24 @@ async function createApp(options = {}) {
       }),
     );
     app.get("/api/v1/capabilities", guard, async (req, res) =>
-      res.json(capabilities(baseUrl, await auth.accountInfo(req))),
+      res.json(
+        capabilities(baseUrl, await auth.accountInfo(req), {
+          contentOriginTemplate,
+        }),
+      ),
     );
+    app.get("/api/v1/content-origins/suggestions", guard, async (req, res) => {
+      const title = String(req.query.title || "site").slice(0, 100);
+      const labels = contentOrigins.recommendations(req.member.username, title);
+      res.json({
+        enabled: Boolean(contentOriginTemplate),
+        username: req.member.username,
+        suggestions: labels.map((label) => ({
+          label,
+          url: contentOrigins.urlFor(contentOriginTemplate, label),
+        })),
+      });
+    });
     app.get("/api/v1/works", async (req, res) => {
       if (req.query.all === "true") {
         await guard(req, res, () => {});
@@ -291,6 +356,18 @@ async function createApp(options = {}) {
           const candidate = prefix + "-" + suffix;
           if (!(await repository.raw(candidate))) return candidate;
         }
+      };
+      const allocateContentLabel = async () => {
+        if (!contentOriginTemplate) return "";
+        if (req.body.contentLabel !== undefined) return req.body.contentLabel;
+        for (let attempt = 0; attempt < 10; attempt++) {
+          const label = contentOrigins.candidate(req.member.username, req.body.title);
+          const used = await db
+            .prepare("SELECT 1 FROM works WHERE content_label=?")
+            .get(label);
+          if (!used) return label;
+        }
+        return "";
       };
       const canonical = (v) =>
         Array.isArray(v)
@@ -381,6 +458,19 @@ async function createApp(options = {}) {
         return res
           .status(400)
           .json({ error: "slug 需为 1–64 位小写英文字母、数字或单连字符。" });
+      if (
+        creating &&
+        req.body.contentLabel !== undefined &&
+        (!contentOriginTemplate ||
+          !contentOrigins.validForUser(
+            req.body.contentLabel,
+            req.member.username,
+          ))
+      )
+        return res.status(400).json({
+          error:
+            "独立子域仅在实例启用内容域后可用，并须采用当前用户名开头的推荐格式。",
+        });
       const old = await find(slug);
       if (creating && old)
         return res.status(409).json({
@@ -560,10 +650,26 @@ async function createApp(options = {}) {
             error: "版本存储达到 150 MB，请联系管理员扩容。",
           };
         if (fresh) await saveVersion(fresh);
+        const contentLabel =
+          fresh?.content_label ||
+          old?.content_label ||
+          (await allocateContentLabel());
+        if (
+          !fresh &&
+          contentLabel &&
+          (await db
+            .prepare("SELECT 1 FROM works WHERE content_label=?")
+            .get(contentLabel))
+        )
+          return {
+            status: 409,
+            error: "这个独立子域已被使用，请刷新推荐。",
+            code: "CONTENT_LABEL_TAKEN",
+          };
         await db
           .prepare(
-            `INSERT INTO works(slug,title,description,tags,theme,html,published,revision,created_at,updated_at,cover,cover_mime,owner_id,listed,files,file_count,byte_size,content_ref,content_bytes)
-        VALUES(?,?,?,?,?,'',?,?,?,?,NULL,?,?,?,'[]',?,?,?,?)
+            `INSERT INTO works(slug,title,description,tags,theme,html,published,revision,created_at,updated_at,cover,cover_mime,owner_id,listed,files,file_count,byte_size,content_ref,content_bytes,content_label)
+        VALUES(?,?,?,?,?,'',?,?,?,?,NULL,?,?,?,'[]',?,?,?,?,?)
         ON CONFLICT(slug) DO UPDATE SET title=excluded.title,description=excluded.description,tags=excluded.tags,theme=excluded.theme,
         html='',files='[]',cover=NULL,cover_mime=excluded.cover_mime,published=excluded.published,listed=excluded.listed,
         revision=excluded.revision,updated_at=excluded.updated_at,file_count=excluded.file_count,byte_size=excluded.byte_size,
@@ -586,6 +692,7 @@ async function createApp(options = {}) {
             packed.byte_size,
             packed.content_ref,
             packed.content_bytes,
+            contentLabel,
           );
         await saveVersion(await repository.raw(slug));
         if (updateHash)
@@ -731,6 +838,20 @@ async function createApp(options = {}) {
         return res.status(404).type("text").send("内容尚未发布或已下架。");
       if (!["GET", "HEAD"].includes(req.method)) return res.status(405).end();
       if (
+        !res.locals.contentOrigin &&
+        contentOriginTemplate &&
+        isPublic(row) &&
+        row.content_label &&
+        !req.params.shareKey &&
+        req.method === "GET" &&
+        req.get("sec-fetch-dest") === "document" &&
+        (req.path === "/" || req.path === "")
+      )
+        return res.redirect(
+          302,
+          contentOrigins.urlFor(contentOriginTemplate, row.content_label),
+        );
+      if (
         !isPublic(row) &&
         !req.params.shareKey &&
         req.method === "GET" &&
@@ -778,15 +899,19 @@ async function createApp(options = {}) {
       if (!bytes) return res.status(404).type("text").send("文件不存在。");
       res.set({
         "Content-Security-Policy":
-          "sandbox allow-scripts allow-forms allow-modals allow-downloads; frame-ancestors 'self'; base-uri 'none'",
+          `sandbox allow-scripts allow-forms allow-modals allow-downloads${res.locals.contentOrigin ? " allow-same-origin" : ""}; frame-ancestors ${res.locals.contentOrigin ? "'none'" : "'self'"}; base-uri 'none'`,
         "Cache-Control": "no-store",
         "X-Robots-Tag": "noindex",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
       });
       if (isPublic(row) && indexable(row) && !req.params.shareKey)
         res.removeHeader("X-Robots-Tag");
       if (name === "index.html" && isPublic(row) && !req.params.shareKey) {
         if (!metadata(row.html).tags.canonical)
-          res.set("Link", `<${baseUrl}/s/${row.slug}/>; rel="canonical"`);
+          res.set(
+            "Link",
+            `<${contentOrigins.urlFor(contentOriginTemplate, row.content_label) || `${baseUrl}/s/${row.slug}/`}>; rel="canonical"`,
+          );
         if (row.share_enabled) bytes = Buffer.from(enhance(row, baseUrl));
       }
       // Only public site files support anonymous module/font fetch; never use credentials or CORS on management APIs.
@@ -802,6 +927,16 @@ async function createApp(options = {}) {
         .send(bytes);
     };
     // Read-only capability routes preserve relative paths and exact bytes inside the opaque sandbox.
+    app.use("/__qiaopage_content/:contentLabel", async (req, res) => {
+      const row = await db
+        .prepare("SELECT slug,access_mode,published FROM works WHERE content_label=?")
+        .get(req.params.contentLabel);
+      if (!row || !row.published || row.access_mode !== "public")
+        return res.status(404).type("text").send("内容尚未发布或已下架。");
+      req.params.slug = row.slug;
+      res.locals.contentOrigin = true;
+      return serveSite(req, res);
+    });
     app.use("/r/:shareKey/:slug", serveSite);
     app.use("/s/:slug", serveSite);
     app.get("/explore", async (req, res) => {

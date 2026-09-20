@@ -26,6 +26,7 @@ CLI 在容器内部访问服务，返回的登录链接使用配置的 `BASE_URL
 ## 配置和 HTTPS
 
 - `.env.docker` 的 `BASE_URL` 必须与浏览器实际访问地址完全一致。公网部署设置为你的 HTTPS 域名，例如 `https://share.example.com`，再配置反向代理和 TLS。
+- 如需让公开作品使用独立 origin 和自己的 localStorage，先配置通配 DNS/TLS，再设置 `CONTENT_ORIGIN_TEMPLATE=https://{label}.pages.example.com`。此域不得与 `BASE_URL` 的管理主机相同，也不得携带管理站域 Cookie。
 - 默认端口仅绑定宿主机 `127.0.0.1:8090`。可在 `.env.docker` 设置 `QUICKSHARE_PORT=8091`；本地访问时同时修改 `BASE_URL`。不要与已有服务占用同一端口。
 - `.env` 用于本地 Node 开发，`.env.docker` 用于 Compose；命令都显式指定后者。
 - 应用运行在非 root 用户下，根文件系统只读，数据库和私有文件写入持久卷 `/app/data`。请保留 `.env.docker` 和数据卷，丢失密钥可能失去管理员恢复入口。

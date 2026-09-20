@@ -121,6 +121,19 @@ test("directory publishing infers a clean display title without rewriting source
   const heading = await f.run(["publish", headingSite]);
   assert.equal(heading.data.work.title, "Hello World");
 });
+test("compatibility check reports isolated-origin needs and blocks hard sandbox violations", async (t) => {
+  const f = await setup(t);
+  fs.writeFileSync(f.source, "<script>localStorage.getItem('lang')</script><h1>Safe fallback</h1>");
+  const warning = await f.run(["check", f.source]);
+  assert.equal(warning.code, 0, warning.err);
+  assert.equal(warning.data.ok, true);
+  assert.equal(warning.data.findings[0].code, "browser-storage");
+  fs.writeFileSync(f.source, "<script>navigator.serviceWorker.register('/sw.js')</script>");
+  const blocked = await f.run(["check", f.source]);
+  assert.equal(blocked.code, 2);
+  assert.equal(blocked.data.ok, false);
+  assert.equal(blocked.data.findings[0].code, "service-worker");
+});
 test("project identity and remote revision conflicts fail closed with actionable errors", async (t) => {
   const f = await setup(t);
   const first = await f.run(["publish", f.source]);

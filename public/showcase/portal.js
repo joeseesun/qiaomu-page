@@ -8,6 +8,7 @@ let member,
   editing = null,
   detail = null,
   inviteCode = new URLSearchParams(location.hash.slice(1)).get("invite");
+let originSuggestionSequence = 0;
 const grant = new URLSearchParams(location.hash.slice(1)).get("code");
 if (location.hash) history.replaceState(null, "", location.pathname);
 async function api(url, method = "GET", body) {
@@ -383,6 +384,7 @@ async function selectFiles(input) {
   const f = $("publish-form");
   f.elements.title.value =
     editing?.title || input[0].file.name.replace(/\.[^.]+$/, "");
+  await suggestContentOrigin();
   f.elements.slug.value = editing?.slug || "";
   f.elements.slug.readOnly = !!editing;
   $("publish-link-settings").open = false;
@@ -391,6 +393,21 @@ async function selectFiles(input) {
     ? "更新这个链接 ↗"
     : "发布并获取链接 ↗";
   f.elements.title.focus();
+}
+async function suggestContentOrigin() {
+  const output = $("content-origin-suggestion");
+  const title = $("publish-form").elements.title.value.trim();
+  const sequence = ++originSuggestionSequence;
+  if (editing || !title) return (output.textContent = "");
+  try {
+    const result = await api("/api/v1/content-origins/suggestions?title=" + encodeURIComponent(title));
+    if (sequence !== originSuggestionSequence) return;
+    const suggestion = result.enabled ? result.suggestions[0] : null;
+    $("publish-form").elements.contentLabel.value = suggestion?.label || "";
+    output.textContent = suggestion?.url
+      ? "推荐独立网址：" + suggestion.url.replace(/^https?:\/\//, "") + "（发布后固定）"
+      : "将自动生成稳定链接；当前实例未启用独立内容域。";
+  } catch { if (sequence === originSuggestionSequence) output.textContent = ""; }
 }
 function clearFiles() {
   selected = [];
@@ -474,6 +491,10 @@ $("dropzone").ondrop = action(async (e) => {
 });
 $("clear-files").onclick = clearFiles;
 $("publish-another").onclick = clearFiles;
+$("publish-form").elements.title.addEventListener("input", () => {
+  clearTimeout(suggestContentOrigin.timer);
+  suggestContentOrigin.timer = setTimeout(suggestContentOrigin, 180);
+});
 $("publish-form").onsubmit = async (e) => {
   e.preventDefault();
   $("publish-error").textContent = "";
@@ -505,6 +526,7 @@ $("publish-form").onsubmit = async (e) => {
     let pendingKey;
     if (!editing) {
       if (f.elements.slug.value.trim()) body.slug = f.elements.slug.value.trim();
+      if (f.elements.contentLabel.value) body.contentLabel = f.elements.contentLabel.value;
       const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify({member: member.id, body})));
       pendingKey = "quickshare-publish-" + Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
       // Only an opaque request ID is stored; source files and credentials stay out of browser storage.
