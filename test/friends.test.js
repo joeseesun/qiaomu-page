@@ -150,6 +150,7 @@ test("invite only, single-use registration, password login and strict session CS
   assert.equal(r.status, 200);
   assert.match(r.headers.get("set-cookie"), /HttpOnly/);
   assert.match(r.headers.get("set-cookie"), /SameSite=Strict/);
+  assert.doesNotMatch(r.headers.get("set-cookie"), /Domain=/i);
   assert.equal(
     (
       await call(
@@ -456,13 +457,23 @@ test("additive migration preserves legacy owners, public listings, HTML and cove
     )
     .run("legacy", "旧内容", "<h1>keep me</h1>", "now", "now");
   old.close();
-  const first = await createApp({ token: rootToken, dbPath });
+  const first = await createApp({
+    token: rootToken,
+    dbPath,
+    accountOriginTemplate: "https://{handle}.example.test",
+  });
   let row = first.db.prepare("SELECT * FROM works").get();
   assert.equal(row.owner_id, 1);
   assert.equal(row.listed, 1);
   assert.equal(row.html, "<h1>keep me</h1>");
+  assert.equal(row.content_handle, "owner");
+  assert.equal(row.content_path, "site");
   first.db.close();
-  const again = await createApp({ token: rootToken, dbPath });
+  const again = await createApp({
+    token: rootToken,
+    dbPath,
+    accountOriginTemplate: "https://{handle}.example.test",
+  });
   assert.equal(again.db.prepare("SELECT count(*) AS n FROM works").get().n, 1);
   assert.equal(
     again.db.prepare("PRAGMA integrity_check").get().integrity_check,

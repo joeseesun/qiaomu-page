@@ -7,7 +7,7 @@ const { parseArgs } = require("node:util");
 const configPath =
   process.env.QUICKSHARE_CONFIG ||
   path.join(os.homedir(), ".config/quickshare/config.json");
-const CLI_VERSION = "1.9.0";
+const CLI_VERSION = "1.10.0";
 const { createHash, randomUUID } = require("node:crypto");
 let flags = {},
   args = [];
@@ -39,6 +39,7 @@ try {
       "invite-stdin": { type: "boolean" },
       "code-stdin": { type: "boolean" },
       slug: { type: "string" },
+      path: { type: "string" },
       "request-id": { type: "string" },
       title: { type: "string" },
       description: { type: "string" },
@@ -87,14 +88,15 @@ Publish FILE or DIRECTORY.
   quickshare versions SLUG
   quickshare rollback SLUG REVISION
   --listed adds a site to the optional public gallery
-  Addresses are assigned automatically; --slug is an optional custom address.
+  Friendly addresses are assigned automatically; --path is an optional project path on your account subdomain.
+  --slug remains the optional compatible internal address.
   publish SOURCE creates once, then updates the linked site. publish SOURCE --new creates a separate site.
   update SOURCE requires an existing link. update SLUG SOURCE remains supported.
   link SLUG SOURCE explicitly associates an existing site. status [SOURCE] reads the association.
   Pending retries reuse their request ID; do not change files until an uncertain publish is resolved.
   --request-id ID starts an explicit publication (16–128 letters, numbers, _ or -); reuse it to retry.
 
-QiaoPage — publish an HTML or Markdown work\n\n  quickshare login --url https://share.example.com --token-stdin\n  quickshare publish index.html --slug my-work --title "我的作品" --tags 工具,实验 --capture\n  quickshare update my-work index.html [--title ...] [--description ...]\n  quickshare list [--all] [--json]\n  quickshare get my-work [--output saved.html]\n  quickshare unpublish my-work\n  quickshare restore my-work\n  quickshare doctor\n\nOptions: --description TEXT --tags a,b --theme sage|sand|ink|rose --draft --json --cover cover.png --capture\nMarkdown (.md/.markdown) is rendered as styled HTML.\nDirectories need index.html or index.md; max 100 files, 8 MB total, 5 MB per file.\nToken: saved by login or QUICKSHARE_TOKEN; config: QUICKSHARE_CONFIG.\n`;
+QiaoPage — publish an HTML or Markdown work\n\n  quickshare login --url https://share.example.com --token-stdin\n  quickshare publish index.html --path my-work --title "我的作品" --tags 工具,实验 --capture\n  quickshare update my-work index.html [--title ...] [--description ...]\n  quickshare list [--all] [--json]\n  quickshare get my-work [--output saved.html]\n  quickshare unpublish my-work\n  quickshare restore my-work\n  quickshare doctor\n\nOptions: --path PROJECT_PATH --description TEXT --tags a,b --theme sage|sand|ink|rose --draft --json --cover cover.png --capture\nMarkdown (.md/.markdown) is rendered as styled HTML.\nDirectories need index.html or index.md; max 100 files, 8 MB total, 5 MB per file.\nToken: saved by login or QUICKSHARE_TOKEN; config: QUICKSHARE_CONFIG.\n`;
 function normalizeUrl(raw) {
   const u = new URL(raw);
   if (
@@ -937,7 +939,8 @@ async function projectCommand(config) {
     if (
       state?.pending &&
       (!!flags.new !== !!state.pending.newSite ||
-        (explicit && explicit !== state.pending.slug))
+        (explicit && explicit !== state.pending.slug) ||
+        (flags.path || null) !== (state.pending.contentPath || null))
     )
       throw projectError(
         "PENDING_PUBLICATION",
@@ -962,6 +965,7 @@ async function projectCommand(config) {
         memberId: member.id,
         slug: work.slug,
         revision: work.revision,
+        contentPath: work.content_path || null,
       });
       return {
         ok: true,
@@ -988,15 +992,29 @@ async function projectCommand(config) {
         "--slug cannot change a linked site's address.",
         "Use publish SOURCE --new for a separate site.",
       );
+    if (
+      flags.path !== undefined &&
+      slug &&
+      flags.path !== current?.content_path
+    )
+      throw projectError(
+        "PROJECT_CONFLICT",
+        "--path cannot change a linked site's public address.",
+        "Use publish SOURCE --new for a separate site.",
+      );
     // Keep the original metadata and revision during an uncertain retry.
     const baseline = state?.pending?.baseline || current || {};
     const body = {
       ...(await documentBody(source, flags, baseline)),
       ...(!slug && flags.slug !== undefined ? { slug: flags.slug } : {}),
+      ...(!slug && flags.path !== undefined
+        ? { contentPath: flags.path }
+        : {}),
     };
     const {
       revision: ignoredRevision,
       slug: ignoredSlug,
+      contentPath: ignoredContentPath,
       ...semanticBody
     } = body;
     const hash = createHash("sha256")
@@ -1058,6 +1076,7 @@ async function projectCommand(config) {
       hash,
       slug: slug || null,
       newSite: flags.new,
+      contentPath: flags.path || null,
       baseline: metadata,
     };
     state = {
@@ -1096,6 +1115,7 @@ async function projectCommand(config) {
         memberId: member.id,
         slug: work.slug,
         revision: slug ? body.revision + 1 : 1,
+        contentPath: work.content_path || null,
         hash,
       });
       throw projectError(
@@ -1119,6 +1139,7 @@ async function projectCommand(config) {
       memberId: member.id,
       slug: work.slug,
       revision: work.revision,
+      contentPath: work.content_path || null,
       hash,
     });
     return {

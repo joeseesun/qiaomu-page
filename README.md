@@ -86,7 +86,7 @@ Agent：注册完成。[点击查看初始密码]（实际使用时指向你本�
 | 你想做什么 | QiaoPage 帮你完成 |
 | --- | --- |
 | 分享 AI 做好的作品 | HTML、Markdown、静态网站文件夹，上传后直接打开 |
-| 一直用同一个链接 | 自动分配带随机短码的地址；改标题、改账号、更新内容都保留 URL |
+| 一直用同一个链接 | 自动分配 `用户名.example.com/项目名`；重名时才加数字，改标题、改账号、更新内容都保留 URL |
 | 放心继续改 | 重试不重复建站，版本冲突检查，历史恢复、下架与重新发布 |
 | 让朋友一起用 | 一人一份邀请 Prompt、独立身份、独立空间；管理员可备注和停用 |
 | 让分享卡片更好看 | 按需设置 OG 标题、摘要和封面，按需开启搜索收录 |
@@ -209,9 +209,9 @@ node quickshare.js account --json
 
 `RETURNED_SLUG` 用发布时返回的实际值替换。未配置实例地址时，CLI 会停止并提示登录，不会连接到别人的服务。QiaoPage 保留 `quickshare` CLI、`qiaomu-quickshare` Skill 与旧配置标识，已有连接无需重建。见[品牌与兼容性](docs/branding.md)。
 
-CLI 1.9 会在首次发布时自动选择良好的作品标题：`--title` 优先，否则读取 HTML `<title>`、首个 `<h1>` 或 Markdown 一级标题，最后才使用经过整理的源文件名。更新时保留已有作品标题，除非明确传入新的 `--title`。这些都只是 QiaoPage 元数据，不会改写原始 HTML、Markdown 或构建产物；账号用户名也不会从作品推导或修改。发布前可运行 `node quickshare.js check SOURCE --json` 检查浏览器存储、Service Worker、Cookie、顶层跳转和管理 API 等运行兼容性风险。
+CLI 1.10 会在首次发布时自动选择良好的作品标题：`--title` 优先，否则读取 HTML `<title>`、首个 `<h1>` 或 Markdown 一级标题，最后才使用经过整理的源文件名。更新时保留已有作品标题，除非明确传入新的 `--title`。这些都只是 QiaoPage 元数据，不会改写原始 HTML、Markdown 或构建产物；账号用户名也不会从作品推导或修改。发布前可运行 `node quickshare.js check SOURCE --json` 检查浏览器存储、Service Worker、Cookie、顶层跳转和管理 API 等运行兼容性风险。
 
-实例可配置 `CONTENT_ORIGIN_TEMPLATE=https://{label}.pages.example.com`，把公开作品放在与管理站分离的独立 origin。新作品会按“用户名 + 作品名 + 防冲突短码”推荐并固定地址；改用户名、改标题和更新内容都不会换链接。旧 `/s/slug` 仍是稳定入口，私密和受限链接继续使用更严格的 opaque sandbox。不要在管理域的 `/s/*` 上直接开启 `allow-same-origin`。
+推荐配置 `ACCOUNT_ORIGIN_TEMPLATE=https://{handle}.example.com`，公开地址会是 `https://用户名.example.com/项目名/`。账号 handle 在第一次分配后固定；项目 path 从标题提炼，只在重名时追加 `-2`、`-3`，也可在首次发布时用 CLI `--path` 或网页“项目短地址”指定。改用户名、标题和内容都不会换链接。同一账号的公开作品共享该账号 origin 的本地存储，不同账号仍由子域隔离；管理 Cookie/API 和 Service Worker 始终不可用。旧 `/s/slug` 与旧 `CONTENT_ORIGIN_TEMPLATE` 作品子域继续兼容并跳转至首选短网址。
 
 直接对 Agent 说：「更新到 qp」「另建一个网站」「设为仅自己可见」「生成一个 7 天有效的分享链接」「撤销给小王的链接」。
 
@@ -236,7 +236,7 @@ flowchart LR
   F --> G[隔离运行的静态网页]
 ```
 
-文件先写入不可变对象，再用事务更新索引。分享链接经过发布状态检查；旧入口与受限内容运行于 opaque sandbox，配置独立内容域后，公开作品可在独立 origin 使用浏览器本地存储。网页会话与 Agent 使用不同的凭据机制，普通成员只能管理自己的内容。
+文件先写入不可变对象，再用事务更新索引。分享链接经过发布状态检查；旧入口与受限内容运行于 opaque sandbox，配置账号内容域后，公开作品可在各自账号子域使用浏览器本地存储。网页会话与 Agent 使用不同的凭据机制，普通成员只能管理自己的内容。
 
 [架构说明](docs/portable-deployment.md) · [存储与迁移](docs/storage.md) · [安全策略](SECURITY.md)
 
@@ -245,7 +245,7 @@ flowchart LR
 - **静态发布**：不运行后端 Node、Python、PHP，也不托管数据库型应用。前端项目先构建，再上传静态产物。
 - **内容大小**：每次最多 100 个文件 / 8 MiB，单文件最多 5 MiB，每位成员最多 100 个站点。大文件自动分块上传。
 - **访问权限**：默认凭普通链接访问、不进入展厅。可通过 Agent 改为「仅自己」或「受限链接」，并设置分享链接的有效期与撤销。受限链接可被转发。
-- **网页隔离**：任何作品都不开放管理站 Cookie、管理 API 或 Service Worker。未配置内容域时 localStorage 不可用；配置独立内容域后，公开作品只获得自己 origin 的 localStorage。静态资源建议使用相对路径。
+- **网页隔离**：任何作品都不开放管理站 Cookie、管理 API 或 Service Worker。未配置内容域时 localStorage 不可用；配置账号内容域后，同一账号的公开作品共享账号 origin 的 localStorage，不同账号仍由子域隔离。静态资源建议使用相对路径。
 - **运行成本**：开源代码使用 ISC 许可；云平台、域名与存储费用由部署者承担，免费额度以各平台当前规则为准。
 - **发布形态**：目前从源码安装，尚未提供预构建容器镜像。默认 SQLite 使用单实例和持久卷。
 

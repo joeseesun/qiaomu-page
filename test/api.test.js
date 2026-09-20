@@ -168,12 +168,13 @@ test("validation, HTML sandbox, safe metadata and download", async (t) => {
   assert.doesNotMatch(await (await call("/sitemap.xml")).text(), /\/(w|s)\/demo/);
 });
 
-test("isolated content origins are stable, username-based and keep management sandbox opaque", async (t) => {
+test("account subdomains use stable readable paths and retain isolated legacy aliases", async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qiaopage-origin-test-"));
   const runtime = await createApp({
     token,
     dbPath: path.join(dir, "test.sqlite"),
     baseUrl: "https://www.example.test",
+    accountOriginTemplate: "https://{handle}.example.test",
     contentOriginTemplate: "https://{label}.pages.example.test",
   });
   const server = await new Promise((resolve) => {
@@ -194,12 +195,15 @@ test("isolated content origins are stable, username-based and keep management sa
   assert.equal(created.status, 201);
   const work = (await created.json()).work;
   assert.match(work.content_label, /^owner-site-/);
-  assert.equal(work.contentUrl, `https://${work.content_label}.pages.example.test/`);
+  assert.equal(work.content_handle, "owner");
+  assert.equal(work.content_path, "site");
+  assert.equal(work.contentUrl, "https://owner.example.test/site/");
+  assert.equal(work.legacyContentUrl, `https://${work.content_label}.pages.example.test/`);
   assert.equal(work.url, work.contentUrl);
   assert.equal(work.legacyUrl, `https://www.example.test/s/${work.slug}/`);
 
   const isolated = await new Promise((resolve, reject) => {
-    const request = http.request(local + "/", { headers: { Host: `${work.content_label}.pages.example.test` } }, (response) => {
+    const request = http.request(local + "/site/", { headers: { Host: "owner.example.test" } }, (response) => {
       let body = "";
       response.setEncoding("utf8");
       response.on("data", (chunk) => (body += chunk));
@@ -213,6 +217,15 @@ test("isolated content origins are stable, username-based and keep management sa
   assert.match(isolated.headers["content-security-policy"], /worker-src 'none'/);
   assert.match(isolated.headers["permissions-policy"], /camera=\(\)/);
   assert.match(isolated.body, /Try/);
+  const otherAccount = await new Promise((resolve, reject) => {
+    const request = http.request(local + "/site/", { headers: { Host: "other.example.test" } }, (response) => {
+      response.resume();
+      response.on("end", () => resolve(response));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+  assert.equal(otherAccount.statusCode, 404);
 
   const legacy = await fetch(local + `/s/${work.slug}/`, {
     redirect: "manual",
@@ -221,14 +234,61 @@ test("isolated content origins are stable, username-based and keep management sa
   assert.equal(legacy.status, 302);
   assert.equal(legacy.headers.get("location"), work.contentUrl);
 
+  const oldContent = await new Promise((resolve, reject) => {
+    const request = http.request(local + "/", { headers: { Host: `${work.content_label}.pages.example.test`, "sec-fetch-dest": "document" } }, (response) => {
+      response.resume();
+      response.on("end", () => resolve(response));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+  assert.equal(oldContent.statusCode, 302);
+  assert.equal(oldContent.headers.location, work.contentUrl);
+
   const asset = await fetch(local + `/s/${work.slug}/`);
   assert.doesNotMatch(asset.headers.get("content-security-policy"), /allow-same-origin/);
   const suggestions = await fetch(local + "/api/v1/content-origins/suggestions?title=My%20Tool", { headers });
   assert.equal(suggestions.status, 200);
   const suggested = await suggestions.json();
   assert.equal(suggested.enabled, true);
+  assert.equal(suggested.mode, "account");
+  assert.equal(suggested.handle, "owner");
   assert.equal(suggested.suggestions.length, 3);
-  assert.ok(suggested.suggestions.every((item) => item.label.startsWith("owner-my-tool-")));
+  assert.equal(suggested.suggestions[0].path, "my-tool");
+  assert.equal(suggested.suggestions[0].url, "https://owner.example.test/my-tool/");
+
+  const custom = await fetch(local + "/api/v1/works", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      ...sample,
+      title: "My Tool",
+      contentPath: "my-tool",
+      requestId: "origin-test-request-0002",
+    }),
+  });
+  assert.equal(custom.status, 201);
+  assert.equal((await custom.json()).work.contentUrl, "https://owner.example.test/my-tool/");
+  const collision = await fetch(local + "/api/v1/works", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      ...sample,
+      title: "Another Tool",
+      contentPath: "my-tool",
+      requestId: "origin-test-request-0003",
+    }),
+  });
+  assert.equal(collision.status, 409);
+
+  const renamed = await fetch(local + "/api/v1/account", {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ revision: 0, username: "renamed-owner" }),
+  });
+  assert.equal(renamed.status, 200);
+  const afterRename = await fetch(local + `/api/v1/works/${work.slug}`, { headers });
+  assert.equal((await afterRename.json()).work.contentUrl, work.contentUrl);
 });
 test("CLI publishes, updates, exports and preserves private login credentials", async (t) => {
   const { url, dir, call } = await fixture(t);

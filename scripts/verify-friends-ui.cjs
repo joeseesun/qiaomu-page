@@ -16,7 +16,12 @@ const base = "http://127.0.0.1:39997",
   root = path.join(__dirname, "..");
 (async () => {
   fs.mkdirSync(path.join(root, "artifacts"), { recursive: true });
-  const runtime = await createApp({ token, dbPath: ":memory:", baseUrl: base });
+  const runtime = await createApp({
+    token,
+    dbPath: ":memory:",
+    baseUrl: base,
+    accountOriginTemplate: "http://{handle}.localhost:39997",
+  });
   const server = await new Promise((resolve) => {
     const s = runtime.app.listen(39997, "127.0.0.1", () => resolve(s));
   });
@@ -192,8 +197,11 @@ const base = "http://127.0.0.1:39997",
     assert.ok(await friend.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await friend.screenshot({path: path.join(root, "artifacts/publish-auto-mobile.png"), fullPage:true});
     await friend.locator("#publish-link-settings summary").click();
+    assert.equal(await friend.locator("#publish-form [name=contentPath]").inputValue(), "site");
+    await friend.locator("#publish-form [name=contentPath]").fill("afternoon");
     await friend.locator("#publish-form [name=slug]").fill("optional-custom-link");
     await friend.screenshot({path: path.join(root, "artifacts/publish-custom-mobile.png"), fullPage:true});
+    await friend.locator("#publish-form [name=contentPath]").fill("site");
     await friend.locator("#publish-form [name=slug]").fill("");
     await friend.locator("#publish-link-settings summary").click();
     await friend.setViewportSize({width:1440,height:1000});
@@ -218,7 +226,7 @@ const base = "http://127.0.0.1:39997",
     await friend.getByRole("button", { name: "发布并获取链接" }).click();
     await friend.locator("#publish-success").waitFor({ state: "visible" });
     const siteUrl = await friend.locator("#published-url").textContent();
-    assert.match(siteUrl, /\/s\/site-[a-z2-9]{10}\/$/);
+    assert.equal(siteUrl, "http://xiaolin.localhost:39997/site/");
     assert.equal(retryRequestId, lostRequestId);
     assert.equal(await friend.locator(".site-row").count(), 1);
     await friend
@@ -243,23 +251,17 @@ const base = "http://127.0.0.1:39997",
     );
     assert.equal(
       await sitePage.evaluate(() => {
-        try {
-          return localStorage.length;
-        } catch (e) {
-          return e.name;
-        }
+        localStorage.setItem("qiaopage-ui-check", "available");
+        return localStorage.getItem("qiaopage-ui-check");
       }),
-      "SecurityError",
+      "available",
     );
     const probe = await sitePage.evaluate(async () => {
-      try {
-        await fetch("/api/v1/works?all=true", { credentials: "include" });
-        return "readable";
-      } catch {
-        return "blocked";
-      }
+      const response = await fetch("/api/v1/me", { credentials: "include" });
+      return { status: response.status, text: await response.text() };
     });
-    assert.equal(probe, "blocked");
+    assert.equal(probe.status, 404);
+    assert.doesNotMatch(probe.text, /member|username|admin/i);
     await sitePage.getByRole("link", { name: "下一页" }).click();
     await sitePage.getByRole("heading", { name: "第二页" }).waitFor();
     await sitePage.getByRole("link", { name: "回到首页" }).click();

@@ -18,6 +18,7 @@ async function setup(t) {
       token,
       dbPath: path.join(dir, "db.sqlite"),
       baseUrl: url,
+      accountOriginTemplate: "https://{handle}.example.test",
     });
   server.on("request", runtime.app);
   t.after(
@@ -76,9 +77,10 @@ async function setup(t) {
 }
 test("project publish updates a linked site, --new is explicit, and status carries no credentials", async (t) => {
   const f = await setup(t);
-  const first = await f.run(["publish", f.source]);
+  const first = await f.run(["publish", f.source, "--path", "first"]);
   assert.equal(first.code, 0, first.err);
   const slug = first.data.work.slug;
+  assert.equal(first.data.work.url, "https://owner.example.test/first/");
   assert.equal((await f.run(["publish", f.source])).data.unchanged, true);
   fs.writeFileSync(f.source, "<h1>Second</h1>");
   const second = await f.run(["publish", f.source]);

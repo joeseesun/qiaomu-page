@@ -27,7 +27,7 @@ const atomicRoutes = require("./lib/atomic-routes");
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const THEMES = ["sage", "sand", "ink", "rose"];
 const summaryColumns =
-  "slug,title,description,tags,theme,published,revision,created_at,updated_at,cover_mime,owner_id,listed,file_count,byte_size,access_mode,access_revision,content_label";
+  "slug,title,description,tags,theme,published,revision,created_at,updated_at,cover_mime,owner_id,listed,file_count,byte_size,access_mode,access_revision,content_label,content_handle,content_path";
 async function createApp(options = {}) {
   const token = options.token || process.env.QUICKSHARE_TOKEN;
   if (!token || token.length < 32)
@@ -65,13 +65,30 @@ async function createApp(options = {}) {
     const contentOriginTemplate = contentOrigins.template(
       options.contentOriginTemplate || process.env.CONTENT_ORIGIN_TEMPLATE,
     );
+    const accountOriginTemplate = contentOrigins.accountTemplate(
+      options.accountOriginTemplate || process.env.ACCOUNT_ORIGIN_TEMPLATE,
+    );
     if (
       contentOriginTemplate &&
       new URL(contentOriginTemplate.replace("{label}", "probe")).hostname ===
         new URL(baseUrl).hostname
     )
       throw new Error("Content origins must not use the management host.");
+    if (
+      accountOriginTemplate &&
+      new URL(accountOriginTemplate.replace("{handle}", "probe")).hostname ===
+        new URL(baseUrl).hostname
+    )
+      throw new Error("Account origins must not use the management host.");
     app.use((req, res, next) => {
+      const handle = contentOrigins.handleFromHost(
+        accountOriginTemplate,
+        req.get("host"),
+      );
+      if (handle) {
+        req.url = `/__qiaopage_account/${handle}${req.url}`;
+        return next();
+      }
       const label = contentOrigins.labelFromHost(
         contentOriginTemplate,
         req.get("host"),
@@ -130,6 +147,78 @@ async function createApp(options = {}) {
         })
         .replace("/", " / ");
     const auth = await accounts(app, db, token, baseUrl);
+    const ensureContentAccount = async (ownerId, username) => {
+      const existing = await db
+        .prepare("SELECT handle FROM content_accounts WHERE owner_id=?")
+        .get(ownerId);
+      if (existing) return existing.handle;
+      const base = contentOrigins.handleCandidate(username);
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const suffix = attempt ? `-${attempt + 1}` : "";
+        const handle = (base.slice(0, 63 - suffix.length) + suffix).replace(
+          /-+$/g,
+          "",
+        );
+        try {
+          await db
+            .prepare("INSERT INTO content_accounts(owner_id,handle) VALUES(?,?)")
+            .run(ownerId, handle);
+          return handle;
+        } catch (error) {
+          if (!/unique|constraint/i.test(String(error.message))) throw error;
+          const raced = await db
+            .prepare("SELECT handle FROM content_accounts WHERE owner_id=?")
+            .get(ownerId);
+          if (raced) return raced.handle;
+        }
+      }
+      throw new Error("Unable to allocate account content handle.");
+    };
+    const allocateContentPath = async (ownerId, title, requested) => {
+      const base = requested || contentOrigins.pathCandidate(title);
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const suffix = attempt ? `-${attempt + 1}` : "";
+        const candidate = (base.slice(0, 48 - suffix.length) + suffix).replace(
+          /-+$/g,
+          "",
+        );
+        const used = await db
+          .prepare("SELECT 1 FROM works WHERE owner_id=? AND content_path=?")
+          .get(ownerId, candidate);
+        if (!used) return candidate;
+        if (requested) return "";
+      }
+      return "";
+    };
+    if (accountOriginTemplate) {
+      await db.transaction(async () => {
+        const members = await db
+          .prepare("SELECT id,username FROM members ORDER BY id")
+          .all();
+        for (const member of members)
+          await ensureContentAccount(member.id, member.username);
+        const pending = await db
+          .prepare(
+            "SELECT works.slug,works.title,works.owner_id,members.username FROM works JOIN members ON members.id=works.owner_id WHERE works.content_handle='' OR works.content_path='' ORDER BY works.created_at,works.slug",
+          )
+          .all();
+        for (const work of pending) {
+          const handle = await ensureContentAccount(
+            work.owner_id,
+            work.username,
+          );
+          const contentPath = await allocateContentPath(
+            work.owner_id,
+            work.title,
+          );
+          await db
+            .prepare(
+              "UPDATE works SET content_handle=?,content_path=? WHERE slug=?",
+            )
+            .run(handle, contentPath, work.slug);
+        }
+      });
+    }
     if (contentOriginTemplate) {
       await db.transaction(async () => {
         const pending = await db
@@ -195,10 +284,16 @@ async function createApp(options = {}) {
     const rowToWork = (row) => {
       if (!row) return row;
       const legacyUrl = `${baseUrl}/s/${row.slug}/`;
-      const contentUrl = contentOrigins.urlFor(
+      const legacyContentUrl = contentOrigins.urlFor(
         contentOriginTemplate,
         row.content_label,
       );
+      const contentUrl =
+        contentOrigins.accountUrlFor(
+          accountOriginTemplate,
+          row.content_handle,
+          row.content_path,
+        ) || legacyContentUrl;
       return {
         ...Object.fromEntries(
           Object.entries(row).filter(
@@ -213,6 +308,7 @@ async function createApp(options = {}) {
         listed: Boolean(row.listed),
         url: contentUrl || legacyUrl,
         contentUrl,
+        legacyContentUrl,
         legacyUrl,
         embedUrl: legacyUrl,
       };
@@ -297,14 +393,44 @@ async function createApp(options = {}) {
       res.json(
         capabilities(baseUrl, await auth.accountInfo(req), {
           contentOriginTemplate,
+          accountOriginTemplate,
         }),
       ),
     );
     app.get("/api/v1/content-origins/suggestions", guard, async (req, res) => {
       const title = String(req.query.title || "site").slice(0, 100);
+      if (accountOriginTemplate) {
+        const handle = await db.transaction(() =>
+          ensureContentAccount(req.member.id, req.member.username),
+        );
+        const suggestions = [];
+        for (const candidate of contentOrigins.pathRecommendations(title)) {
+          const used = await db
+            .prepare("SELECT 1 FROM works WHERE owner_id=? AND content_path=?")
+            .get(req.member.id, candidate);
+          if (!used)
+            suggestions.push({
+              handle,
+              path: candidate,
+              url: contentOrigins.accountUrlFor(
+                accountOriginTemplate,
+                handle,
+                candidate,
+              ),
+            });
+        }
+        return res.json({
+          enabled: true,
+          mode: "account",
+          username: req.member.username,
+          handle,
+          suggestions,
+        });
+      }
       const labels = contentOrigins.recommendations(req.member.username, title);
       res.json({
         enabled: Boolean(contentOriginTemplate),
+        mode: contentOriginTemplate ? "work" : "none",
         username: req.member.username,
         suggestions: labels.map((label) => ({
           label,
@@ -470,6 +596,18 @@ async function createApp(options = {}) {
         return res.status(400).json({
           error:
             "独立子域仅在实例启用内容域后可用，并须采用当前用户名开头的推荐格式。",
+        });
+      if (
+        creating &&
+        req.body.contentPath !== undefined &&
+        (!accountOriginTemplate ||
+          typeof req.body.contentPath !== "string" ||
+          req.body.contentPath.length > 48 ||
+          !contentOrigins.PATH.test(req.body.contentPath))
+      )
+        return res.status(400).json({
+          error:
+            "项目短地址仅在实例启用账号内容域后可用，需为 1–48 位小写字母、数字或单连字符。",
         });
       const old = await find(slug);
       if (creating && old)
@@ -654,6 +792,28 @@ async function createApp(options = {}) {
           fresh?.content_label ||
           old?.content_label ||
           (await allocateContentLabel());
+        const contentHandle =
+          fresh?.content_handle ||
+          old?.content_handle ||
+          (accountOriginTemplate
+            ? await ensureContentAccount(req.member.id, req.member.username)
+            : "");
+        const contentPath =
+          fresh?.content_path ||
+          old?.content_path ||
+          (accountOriginTemplate
+            ? await allocateContentPath(
+                req.member.id,
+                req.body.title,
+                req.body.contentPath,
+              )
+            : "");
+        if (accountOriginTemplate && !contentPath)
+          return {
+            status: 409,
+            error: "这个项目短地址已被当前账号使用，请换一个。",
+            code: "CONTENT_PATH_TAKEN",
+          };
         if (
           !fresh &&
           contentLabel &&
@@ -668,8 +828,8 @@ async function createApp(options = {}) {
           };
         await db
           .prepare(
-            `INSERT INTO works(slug,title,description,tags,theme,html,published,revision,created_at,updated_at,cover,cover_mime,owner_id,listed,files,file_count,byte_size,content_ref,content_bytes,content_label)
-        VALUES(?,?,?,?,?,'',?,?,?,?,NULL,?,?,?,'[]',?,?,?,?,?)
+            `INSERT INTO works(slug,title,description,tags,theme,html,published,revision,created_at,updated_at,cover,cover_mime,owner_id,listed,files,file_count,byte_size,content_ref,content_bytes,content_label,content_handle,content_path)
+        VALUES(?,?,?,?,?,'',?,?,?,?,NULL,?,?,?,'[]',?,?,?,?,?,?,?)
         ON CONFLICT(slug) DO UPDATE SET title=excluded.title,description=excluded.description,tags=excluded.tags,theme=excluded.theme,
         html='',files='[]',cover=NULL,cover_mime=excluded.cover_mime,published=excluded.published,listed=excluded.listed,
         revision=excluded.revision,updated_at=excluded.updated_at,file_count=excluded.file_count,byte_size=excluded.byte_size,
@@ -693,6 +853,8 @@ async function createApp(options = {}) {
             packed.content_ref,
             packed.content_bytes,
             contentLabel,
+            contentHandle,
+            contentPath,
           );
         await saveVersion(await repository.raw(slug));
         if (updateHash)
@@ -837,20 +999,27 @@ async function createApp(options = {}) {
       if (!row || !row.published)
         return res.status(404).type("text").send("内容尚未发布或已下架。");
       if (!["GET", "HEAD"].includes(req.method)) return res.status(405).end();
+      const accountUrl = contentOrigins.accountUrlFor(
+        accountOriginTemplate,
+        row.content_handle,
+        row.content_path,
+      );
+      const oldContentUrl = contentOrigins.urlFor(
+        contentOriginTemplate,
+        row.content_label,
+      );
+      const redirectUrl =
+        accountUrl || (!res.locals.contentOrigin ? oldContentUrl : null);
       if (
-        !res.locals.contentOrigin &&
-        contentOriginTemplate &&
+        !res.locals.accountContentOrigin &&
+        redirectUrl &&
         isPublic(row) &&
-        row.content_label &&
         !req.params.shareKey &&
         req.method === "GET" &&
         req.get("sec-fetch-dest") === "document" &&
         (req.path === "/" || req.path === "")
       )
-        return res.redirect(
-          302,
-          contentOrigins.urlFor(contentOriginTemplate, row.content_label),
-        );
+        return res.redirect(302, redirectUrl);
       if (
         !isPublic(row) &&
         !req.params.shareKey &&
@@ -910,7 +1079,7 @@ async function createApp(options = {}) {
         if (!metadata(row.html).tags.canonical)
           res.set(
             "Link",
-            `<${contentOrigins.urlFor(contentOriginTemplate, row.content_label) || `${baseUrl}/s/${row.slug}/`}>; rel="canonical"`,
+            `<${accountUrl || oldContentUrl || `${baseUrl}/s/${row.slug}/`}>; rel="canonical"`,
           );
         if (row.share_enabled) bytes = Buffer.from(enhance(row, baseUrl));
       }
@@ -927,6 +1096,25 @@ async function createApp(options = {}) {
         .send(bytes);
     };
     // Read-only capability routes preserve relative paths and exact bytes inside the opaque sandbox.
+    app.use(
+      "/__qiaopage_account/:contentHandle/:contentPath",
+      async (req, res) => {
+        const row = await db
+          .prepare(
+            "SELECT slug,access_mode,published FROM works WHERE content_handle=? AND content_path=?",
+          )
+          .get(req.params.contentHandle, req.params.contentPath);
+        if (!row || !row.published || row.access_mode !== "public")
+          return res
+            .status(404)
+            .type("text")
+            .send("内容尚未发布或已下架。");
+        req.params.slug = row.slug;
+        res.locals.contentOrigin = true;
+        res.locals.accountContentOrigin = true;
+        return serveSite(req, res);
+      },
+    );
     app.use("/__qiaopage_content/:contentLabel", async (req, res) => {
       const row = await db
         .prepare("SELECT slug,access_mode,published FROM works WHERE content_label=?")
@@ -935,6 +1123,7 @@ async function createApp(options = {}) {
         return res.status(404).type("text").send("内容尚未发布或已下架。");
       req.params.slug = row.slug;
       res.locals.contentOrigin = true;
+      res.locals.legacyContentOrigin = true;
       return serveSite(req, res);
     });
     app.use("/r/:shareKey/:slug", serveSite);
