@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "quickshare-agent",
+  "name": "qiaomu-page",
   "main": ".cloudflare-build/worker/worker.mjs",
   "compatibility_date": "2026-09-08",
   "compatibility_flags": [
@@ -33,7 +33,7 @@
   "r2_buckets": [
     {
       "binding": "OBJECTS",
-      "bucket_name": "quickshare-agent-objects"
+      "bucket_name": "qiaomu-page-objects"
     }
   ],
   "observability": {
@@ -51,7 +51,7 @@
   ],
   "secrets": {
     "required": [
-      "QUICKSHARE_TOKEN"
+      "QIAOMU_PAGE_TOKEN"
     ]
   }
 }

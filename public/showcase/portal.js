@@ -793,7 +793,7 @@ async function start() {
   $("members-tab").hidden = !member.admin;
   $("invite-button").hidden = true;
   $("cli-example").textContent =
-    `node quickshare.js login --url ${location.origin} --token-stdin < token.txt\nnode quickshare.js publish ./index.html\nnode quickshare.js publish ./my-site\nnode quickshare.js update my-site ./my-site`;
+    `node qiaomu-page.js login --url ${location.origin} --token-stdin < token.txt\nnode qiaomu-page.js publish ./index.html\nnode qiaomu-page.js publish ./my-site\nnode qiaomu-page.js update my-site ./my-site`;
   await refresh();
   const owner = Number(new URLSearchParams(location.search).get("owner"));
   if (member.admin && owner > 0) {

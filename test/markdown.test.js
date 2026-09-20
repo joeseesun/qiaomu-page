@@ -70,7 +70,7 @@ test("CLI publishes and updates Markdown, exports HTML and retains existing HTML
   const cli = (...args) =>
     execute(
       process.execPath,
-      [path.join(__dirname, "../bin/quickshare.js"), ...args],
+      [path.join(__dirname, "../bin/qiaomu-page.js"), ...args],
       { env },
     );
   const file = path.join(dir, "article.md");

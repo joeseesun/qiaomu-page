@@ -6,7 +6,7 @@ const fs = require("node:fs"),
 const { spawn, execFileSync } = require("node:child_process"),
   { randomBytes } = require("node:crypto");
 const root = path.resolve(__dirname, ".."),
-  temporary = fs.mkdtempSync(path.join(os.tmpdir(), "qs-worker-"));
+  temporary = fs.mkdtempSync(path.join(os.tmpdir(), "qiaomu-page-worker-"));
 let child,
   log = "";
 async function stop() {
@@ -52,7 +52,7 @@ async function run(file, env) {
   );
   fs.writeFileSync(
     path.join(temporary, ".dev.vars"),
-    "QUICKSHARE_TOKEN=" + token + "\nBASE_URL=" + base + "\n",
+    "QIAOMU_PAGE_TOKEN=" + token + "\nBASE_URL=" + base + "\n",
     { mode: 0o600 },
   );
   async function start() {
@@ -97,9 +97,9 @@ async function run(file, env) {
     throw new Error("Worker not ready: " + log);
   }
   const env = {
-    QUICKSHARE_URL: base,
-    QUICKSHARE_TOKEN: token,
-    QUICKSHARE_TEST_STATE: path.join(temporary, "state.json"),
+    QIAOMU_PAGE_URL: base,
+    QIAOMU_PAGE_TOKEN: token,
+    QIAOMU_PAGE_TEST_STATE: path.join(temporary, "state.json"),
   };
   await start();
   await run("scripts/verify-deployment.cjs", env);

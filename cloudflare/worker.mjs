@@ -40,7 +40,7 @@ export class Quickshare extends DurableObject {
       }
     };
     const runtime = await server.createApp({
-      token: this.env.QUICKSHARE_TOKEN,
+      token: this.env.QIAOMU_PAGE_TOKEN || this.env.QUICKSHARE_TOKEN,
       baseUrl: this.env.BASE_URL || origin,
       contentOriginTemplate: this.env.CONTENT_ORIGIN_TEMPLATE,
       accountOriginTemplate: this.env.ACCOUNT_ORIGIN_TEMPLATE,
@@ -56,7 +56,9 @@ export class Quickshare extends DurableObject {
   }
   async fetch(request) {
     if (new URL(request.url).pathname.startsWith("/__ops/recovery")) {
-      const secret = this.env.QUICKSHARE_RECOVERY_TOKEN;
+      const secret =
+        this.env.QIAOMU_PAGE_RECOVERY_TOKEN ||
+        this.env.QUICKSHARE_RECOVERY_TOKEN;
       const supplied = request.headers.get("Authorization") || "";
       if (
         !secret ||
@@ -116,7 +118,7 @@ export default {
     if (
       url.pathname.startsWith("/assets/") ||
       url.pathname.startsWith("/fonts/") ||
-      url.pathname === "/client/quickshare.js"
+      ["/client/qiaomu-page.js", "/client/quickshare.js"].includes(url.pathname)
     )
       return env.ASSETS.fetch(request);
     return env.APP.getByName("primary").fetch(request);

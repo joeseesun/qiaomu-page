@@ -1,4 +1,4 @@
-# QiaoPage
+# Qiaomu Page
 
 Read README.md, DOCKER_INSTALL.md and docs/portable-deployment.md before meaningful changes.
 
@@ -11,5 +11,5 @@ Read README.md, DOCKER_INSTALL.md and docs/portable-deployment.md before meaning
 - Stable slugs, idempotent publishing, revision CAS, atomic versions and recoverable unpublish/restore are required. Use additive migrations.
 - Run npm run check and npm test. Docker changes require npm run verify:docker. UI changes require npm run verify:ui and actual desktop/390px screenshot inspection.
 - Cloudflare uses SQLite Durable Objects + R2; Vercel uses libSQL + private Blob. Cloud changes require native runtime, authorization, full-size uploads, redeploy persistence and recovery verification. CLI verification is not a browser deploy-button test.
-- Product brand: QiaoPage. Preserve legacy quickshare CLI, configuration, environment names and API paths for existing installations.
+- Product brand: Qiaomu Page. Preserve legacy quickshare CLI, configuration, environment names and API paths for existing installations.
 - Report local, committed, pushed, CI, deployed and live-tested states separately.

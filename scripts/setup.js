@@ -7,7 +7,7 @@ if (fs.existsSync(file)) console.log(`${file} already exists; preserved.`);
 else {
   fs.writeFileSync(
     file,
-    `HOST=127.0.0.1\nPORT=${port}\nBASE_URL=http://127.0.0.1:${port}\nQUICKSHARE_TOKEN=${randomBytes(32).toString("hex")}\n`,
+    `HOST=127.0.0.1\nPORT=${port}\nBASE_URL=http://127.0.0.1:${port}\nQIAOMU_PAGE_TOKEN=${randomBytes(32).toString("hex")}\n`,
     { mode: 0o600, flag: "wx" },
   );
   console.log(docker

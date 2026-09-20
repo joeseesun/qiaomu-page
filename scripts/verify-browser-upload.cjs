@@ -1,7 +1,7 @@
 "use strict";
 const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
-const base=process.env.QUICKSHARE_URL,state=JSON.parse(fs.readFileSync(process.env.QUICKSHARE_TEST_STATE));
-(async()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'qs-browser-upload-'));
+const base=process.env.QIAOMU_PAGE_URL||process.env.QUICKSHARE_URL,state=JSON.parse(fs.readFileSync(process.env.QIAOMU_PAGE_TEST_STATE||process.env.QUICKSHARE_TEST_STATE));
+(async()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'qiaomu-page-browser-upload-'));
  const html='<!doctype html><h1>Browser upload verification</h1>',asset=Buffer.alloc(5*1024*1024,42);
  fs.writeFileSync(path.join(dir,'index.html'),html);fs.writeFileSync(path.join(dir,'large.txt'),asset);
  const grant=await fetch(base+'/api/v1/dashboard-link',{method:'POST',headers:{Authorization:'Bearer '+state.guest,'Content-Type':'application/json'},body:'{}'});assert.equal(grant.status,200);const {url}=await grant.json();

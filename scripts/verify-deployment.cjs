@@ -2,10 +2,13 @@
 const fs = require("node:fs"),
   assert = require("node:assert/strict"),
   { randomBytes, randomUUID } = require("node:crypto");
-const base = process.env.QUICKSHARE_URL || process.env.BASE_URL,
-  admin = process.env.QUICKSHARE_TOKEN;
+const base =
+    process.env.QIAOMU_PAGE_URL ||
+    process.env.QUICKSHARE_URL ||
+    process.env.BASE_URL,
+  admin = process.env.QIAOMU_PAGE_TOKEN || process.env.QUICKSHARE_TOKEN;
 if (!base || !admin)
-  throw new Error("Set QUICKSHARE_URL and QUICKSHARE_TOKEN privately");
+  throw new Error("Set QIAOMU_PAGE_URL and QIAOMU_PAGE_TOKEN privately");
 const call = (route, body, method = body ? "POST" : "GET", token = admin) =>
   fetch(base + route, {
     method,
@@ -24,11 +27,12 @@ const call = (route, body, method = body ? "POST" : "GET", token = admin) =>
     "/explore",
     "/healthz",
     "/skill.md",
-    "/client/quickshare.js",
+    "/client/qiaomu-page.js",
     "/assets/portal.css",
   ])
     assert.equal((await call(route)).status, 200, route);
-  const statePath = process.env.QUICKSHARE_TEST_STATE;
+  const statePath =
+    process.env.QIAOMU_PAGE_TEST_STATE || process.env.QUICKSHARE_TEST_STATE;
   if (statePath && fs.existsSync(statePath)) {
     const state = JSON.parse(fs.readFileSync(statePath));
     assert.equal(
@@ -67,7 +71,7 @@ const call = (route, body, method = body ? "POST" : "GET", token = admin) =>
     403,
   );
   const html =
-    '<!doctype html><html lang="zh"><head><title>部署验收</title></head><body><h1>Hello，Quickshare</h1></body></html>';
+    '<!doctype html><html lang="zh"><head><title>部署验收</title></head><body><h1>Hello，Qiaomu Page</h1></body></html>';
   const body = {
     title: "Deployment verification",
     requestId: randomUUID(),

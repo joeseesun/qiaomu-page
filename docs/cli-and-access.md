@@ -1,6 +1,6 @@
 # CLI 1.6 与分享权限
 
-从一次发布，延伸到持续更新和可控分享。QiaoPage 3.1 保留已有账号、Quickshare 命令、稳定地址和原始网页内容。
+从一次发布，延伸到持续更新和可控分享。Qiaomu Page 3.1 保留已有账号、Quickshare 命令、稳定地址和原始网页内容。
 
 ## 在对话里使用
 
@@ -19,11 +19,11 @@ Agent 必须复用当前发布身份。权限错误不能通过切换管理员�
 ## 发布与更新
 
 ```sh
-quickshare status ./dist --json
-quickshare publish ./dist
-quickshare update ./dist
-quickshare publish ./dist --new
-quickshare link EXISTING_SLUG ./dist
+qiaomu-page status ./dist --json
+qiaomu-page publish ./dist
+qiaomu-page update ./dist
+qiaomu-page publish ./dist --new
+qiaomu-page link EXISTING_SLUG ./dist
 ```
 
 CLI 在所选私密配置旁的 `projects/` 保存来源与站点的关联；不往上传目录写配置。关联包含实例、成员 ID、站点、版本和请求状态。来源按规范化绝对路径识别，移动目录后需重新关联。旧版来源没有关联记录，升级后先 `link` 已有站点，避免误建。
@@ -73,11 +73,11 @@ HTTP 429 带 `Retry-After`，按服务端提示等待；是否可重试以 `retr
 新旧站点均默认 `public`，默认不进入展厅；这保持升级前的链接行为。访问控制和展厅、SEO、OG 设置相互独立。切换访问模式撤销全部旧分享链接；切回来不会复活授权。访问修改使用单独版本检查，不改变网页版本或内容。
 
 ```sh
-quickshare access SLUG --json
-quickshare access SLUG --mode link
-quickshare share SLUG --name 小王 --expires 7d --output /PRIVATE_DIRECTORY/friend.json
-quickshare share-list SLUG --json
-quickshare share-revoke SLUG LINK_ID
+qiaomu-page access SLUG --json
+qiaomu-page access SLUG --mode link
+qiaomu-page share SLUG --name 小王 --expires 7d --output /PRIVATE_DIRECTORY/friend.json
+qiaomu-page share-list SLUG --json
+qiaomu-page share-revoke SLUG LINK_ID
 ```
 
 `--expires` 支持分钟 `m`、小时 `h`、天 `d` 和 `never`，最多 366 天，默认不过期。每个站点最多 50 个有效链接。CLI 在请求前创建 mode-600 私密回执，收到结果后补全 URL。同一回执与参数可安全重试。回执必须放在发布目录之外；不能纳入 Git、公开日志或公开文档。

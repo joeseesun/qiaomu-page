@@ -5,7 +5,7 @@ const fs = require("node:fs"),
   { randomBytes } = require("node:crypto"),
   dotenv = require("dotenv");
 const {mergePulledEnvironment} = require("../lib/deployment-env");
-const [provider, name = "quickshare-agent"] = process.argv.slice(2);
+const [provider, name = "qiaomu-page"] = process.argv.slice(2);
 if (
   !["cloudflare", "vercel"].includes(provider) ||
   !/^[a-z][a-z0-9-]{2,40}$/.test(name)
@@ -15,7 +15,10 @@ if (
   );
 process.chdir(path.resolve(__dirname, ".."));
 process.umask(0o077);
-const file = ".env." + provider + (name === "quickshare-agent" ? "" : "-" + name),
+const file =
+    ".env." +
+    provider +
+    (name === "quickshare-agent" ? "" : "-" + name),
   cli = provider === "vercel" ? ["--yes", "vercel@59.15.1"] : ["wrangler"];
 function run(args, options = {}) {
   const result = spawnSync("npx", [...cli, ...args], {
@@ -65,8 +68,9 @@ try {
     )
       run(["r2", "bucket", "create", config.r2_buckets[0].bucket_name]);
     const env = read();
-    if (!env.QUICKSHARE_TOKEN)
-      env.QUICKSHARE_TOKEN = randomBytes(32).toString("hex");
+    if (!env.QIAOMU_PAGE_TOKEN)
+      env.QIAOMU_PAGE_TOKEN =
+        env.QUICKSHARE_TOKEN || randomBytes(32).toString("hex");
     save(env);
     run(["deploy", "--config", configFile, "--secrets-file", file]);
     console.log(
@@ -100,17 +104,20 @@ try {
       env.OBJECT_STORE = "vercel-blob";
       run(["env", "add", "OBJECT_STORE", "production"], {input: env.OBJECT_STORE});
     }
-    if (!env.QUICKSHARE_TOKEN) {
-      env.QUICKSHARE_TOKEN =
-        prior.QUICKSHARE_TOKEN || randomBytes(32).toString("hex");
+    if (!env.QIAOMU_PAGE_TOKEN) {
+      env.QIAOMU_PAGE_TOKEN =
+        prior.QIAOMU_PAGE_TOKEN ||
+        env.QUICKSHARE_TOKEN ||
+        prior.QUICKSHARE_TOKEN ||
+        randomBytes(32).toString("hex");
       save(env);
-      run(["env", "add", "QUICKSHARE_TOKEN", "production"], {
-        input: env.QUICKSHARE_TOKEN,
+      run(["env", "add", "QIAOMU_PAGE_TOKEN", "production"], {
+        input: env.QIAOMU_PAGE_TOKEN,
       });
     }
     save(env);
     run(["deploy", "--prod", "--yes"]);
-    if (env.QUICKSHARE_TOKEN === "[SENSITIVE]") console.log("The existing administrator secret is protected and cannot be downloaded. Keep your existing administrator connection; this local env file cannot create an administrator login. The server secret was not changed.");
+    if (env.QIAOMU_PAGE_TOKEN === "[SENSITIVE]") console.log("The existing administrator secret is protected and cannot be downloaded. Keep your existing administrator connection; this local env file cannot create an administrator login. The server secret was not changed.");
     console.log(
       "Vercel deployed. Keep " +
         file +

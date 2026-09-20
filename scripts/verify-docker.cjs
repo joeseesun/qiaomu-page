@@ -10,7 +10,7 @@ const envFile = path.join(dir, ".env.docker");
 const project = `quickshare-verify-${process.pid}`;
 let token;
 const environment = { ...process.env };
-for (const key of ["QUICKSHARE_TOKEN", "BASE_URL", "QUICKSHARE_PORT", "COMPOSE_FILE", "COMPOSE_PROJECT_NAME", "COMPOSE_PROFILES", "DATABASE_URL", "DATABASE_AUTH_TOKEN", "OBJECT_STORE", "OBJECTS_PATH", "S3_ENDPOINT", "S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY", "S3_REGION", "S3_PREFIX", "S3_FORCE_PATH_STYLE"]) delete environment[key];
+for (const key of ["QIAOMU_PAGE_TOKEN", "QIAOMU_PAGE_PORT", "QUICKSHARE_TOKEN", "BASE_URL", "QUICKSHARE_PORT", "COMPOSE_FILE", "COMPOSE_PROJECT_NAME", "COMPOSE_PROFILES", "DATABASE_URL", "DATABASE_AUTH_TOKEN", "OBJECT_STORE", "OBJECTS_PATH", "S3_ENDPOINT", "S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY", "S3_REGION", "S3_PREFIX", "S3_FORCE_PATH_STYLE"]) delete environment[key];
 const compose = (...args) => execFileSync("docker", ["compose", "-f", path.join(root, "docker-compose.yml"), "--env-file", envFile, "-p", project, ...args], { cwd: root, env: environment, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 300000 });
 async function main() {
   try {
@@ -21,9 +21,9 @@ async function main() {
     assert.equal(fs.statSync(envFile).mode & 0o777, 0o600);
     setup();
     assert.equal(fs.readFileSync(envFile, "utf8"), original, "setup must preserve existing credentials");
-    token = original.match(/^QUICKSHARE_TOKEN=(.+)$/m)[1];
+    token = original.match(/^QIAOMU_PAGE_TOKEN=(.+)$/m)[1];
     assert.equal(token.length, 64);
-    fs.appendFileSync(envFile, "QUICKSHARE_PORT=0\n");
+    fs.appendFileSync(envFile, "QIAOMU_PAGE_PORT=0\n");
     compose("up", "-d", "--build", "--wait", "--wait-timeout", "90");
     let url;
     const connect = () => { url = `http://${compose("port", "quickshare", "3000").trim()}`; };
@@ -34,7 +34,7 @@ async function main() {
       body: body ? JSON.stringify(body) : undefined,
     });
     assert.equal(compose("exec", "-T", "quickshare", "id", "-u").trim(), "1000");
-    for (const route of ["/", "/healthz", "/publish", "/skill.md", "/client/quickshare.js"]) assert.equal((await call(route)).status, 200, route);
+    for (const route of ["/", "/healthz", "/publish", "/skill.md", "/client/qiaomu-page.js"]) assert.equal((await call(route)).status, 200, route);
     assert.equal((await call("/api/v1/me", "GET", undefined, false)).status, 401);
     const html = '<!doctype html><html lang="zh"><head><title>容器验收</title></head><body><h1>Hello, Docker.</h1></body></html>';
     assert.equal((await call("/api/v1/works/container-test", "PUT", { title: "容器验收", html })).status, 201);

@@ -8,14 +8,14 @@
 
 > 好的展示，不只是把内容放上去。它也应该让人愿意读下去。
 
-你可以使用 **加粗**、*强调*、~~删除线~~，也可以放入 [Quickshare 的作品展厅](https://www.t5t6.com/)。
+你可以使用 **加粗**、*强调*、~~删除线~~，也可以放入 [Qiaomu Page 的作品展厅](https://www.t5t6.com/)。
 
 ## 一条命令完成发布
 
-保存为 `article.md`，在已连接 Quickshare 的电脑上运行：
+保存为 `article.md`，在已连接 Qiaomu Page 的电脑上运行：
 
 ```bash
-quickshare publish ./article.md \
+qiaomu-page publish ./article.md \
   --slug my-notes \
   --title "我的开发手记" \
   --tags 文章,开发 --capture

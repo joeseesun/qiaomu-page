@@ -100,7 +100,7 @@ test("downloaded CLI redeems invitation through stdin, retains private config an
   const {call,invite,db,url}=await fixture(t);
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),"qs-guest-cli-"));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
   const cli=path.join(dir,"quickshare.js"), config=path.join(dir,"private/config.json");
-  fs.writeFileSync(cli,await (await call("/client/quickshare.js")).text());
+  fs.writeFileSync(cli,await (await call("/client/qiaomu-page.js")).text());
   const run=(args,input="",configPath=config)=>new Promise(resolve=>{
     const child=spawn(process.execPath,[cli,...args],{cwd:dir,env:{...process.env,QUICKSHARE_CONFIG:configPath,QUICKSHARE_URL:"",QUICKSHARE_TOKEN:""}});let stdout="",stderr="";
     child.stdout.on("data",x=>stdout+=x);child.stderr.on("data",x=>stderr+=x);child.stdin.on("error",()=>{});child.stdin.end(input);child.on("close",code=>resolve({code,stdout,stderr}));
@@ -139,7 +139,7 @@ test("downloaded CLI registers without an invitation and preserves retryable pri
   const {call,url}=await fixture(t);
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),"qs-open-cli-"));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
   const cli=path.join(dir,"quickshare.js"),config=path.join(dir,"private/config.json");
-  fs.writeFileSync(cli,await (await call("/client/quickshare.js")).text());
+  fs.writeFileSync(cli,await (await call("/client/qiaomu-page.js")).text());
   const run=(args)=>new Promise(resolve=>{
     const child=spawn(process.execPath,[cli,...args],{cwd:dir,env:{...process.env,QUICKSHARE_CONFIG:config,QUICKSHARE_URL:"",QUICKSHARE_TOKEN:""}});let stdout="",stderr="";
     child.stdout.on("data",x=>stdout+=x);child.stderr.on("data",x=>stderr+=x);child.on("close",code=>resolve({code,stdout,stderr}));

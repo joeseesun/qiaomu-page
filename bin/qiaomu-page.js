@@ -4,9 +4,20 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { parseArgs } = require("node:util");
-const configPath =
-  process.env.QUICKSHARE_CONFIG ||
-  path.join(os.homedir(), ".config/quickshare/config.json");
+const canonicalConfigPath = path.join(
+    os.homedir(),
+    ".config/qiaomu-page/config.json",
+  ),
+  legacyConfigPath = path.join(
+    os.homedir(),
+    ".config/quickshare/config.json",
+  ),
+  configPath =
+    process.env.QIAOMU_PAGE_CONFIG ||
+    process.env.QUICKSHARE_CONFIG ||
+    (fs.existsSync(canonicalConfigPath) || !fs.existsSync(legacyConfigPath)
+      ? canonicalConfigPath
+      : legacyConfigPath);
 const CLI_VERSION = "1.11.0";
 const { createHash, randomUUID } = require("node:crypto");
 let flags = {},
@@ -58,36 +69,36 @@ try {
   process.exit(process.exitCode);
 }
 const [command = "status", target, file] = args;
-const help = `QiaoPage / Quickshare Agent CLI ${CLI_VERSION}
-  quickshare whoami --json        # live identity, connection, permissions and usage
-  quickshare capabilities --json  # live tools, limits, defaults and boundaries
-  quickshare check SOURCE --json  # sandbox compatibility before publishing
-  quickshare account [--username NAME] [--password-stdin]
-  quickshare account [--username NAME] --generate-password --output PRIVATE_NEW_FILE # 12-character initial password
-  quickshare account --verify-password-stdin
-  quickshare visibility SLUG [--gallery true|false] [--published true|false]
-  quickshare access SLUG [--mode public|private|link]
-  quickshare share SLUG --name NAME --expires 7d --output PRIVATE_FILE
-  quickshare share-list SLUG
-  quickshare share-revoke SLUG LINK_ID
-  quickshare friends --json
-  quickshare friend MEMBER_ID --note TEXT | --disabled true|false
-  quickshare reinvite INVITE_ID --output PRIVATE_FILE
-  quickshare revoke-invite INVITE_ID
-  quickshare recover MEMBER_ID --output PRIVATE_FILE
+const help = `Qiaomu Page Agent CLI ${CLI_VERSION}
+  qiaomu-page whoami --json        # live identity, connection, permissions and usage
+  qiaomu-page capabilities --json  # live tools, limits, defaults and boundaries
+  qiaomu-page check SOURCE --json  # sandbox compatibility before publishing
+  qiaomu-page account [--username NAME] [--password-stdin]
+  qiaomu-page account [--username NAME] --generate-password --output PRIVATE_NEW_FILE # 12-character initial password
+  qiaomu-page account --verify-password-stdin
+  qiaomu-page visibility SLUG [--gallery true|false] [--published true|false]
+  qiaomu-page access SLUG [--mode public|private|link]
+  qiaomu-page share SLUG --name NAME --expires 7d --output PRIVATE_FILE
+  qiaomu-page share-list SLUG
+  qiaomu-page share-revoke SLUG LINK_ID
+  qiaomu-page friends --json
+  qiaomu-page friend MEMBER_ID --note TEXT | --disabled true|false
+  qiaomu-page reinvite INVITE_ID --output PRIVATE_FILE
+  qiaomu-page revoke-invite INVITE_ID
+  qiaomu-page recover MEMBER_ID --output PRIVATE_FILE
   sharing --preview previews without saving. Account changes always target the connected member.
   Password changes keep Agent keys, but revoke browser sessions and pending login links.
   Secrets only through stdin/private files, never command arguments.
 
 Publish FILE or DIRECTORY.
-  quickshare register --url URL    # create a personal space; no invitation required
-  quickshare join --url URL --invite-stdin # activate an invitation, then finish account onboarding
-  quickshare connect --url URL --code-stdin # connect an existing space
-  quickshare dashboard  # one-use browser login link
-  quickshare invite NAME # one-use invitation, admin only
-  quickshare sharing SLUG [--share-enabled true|false] [--indexable true|false] [--title TEXT] [--description TEXT] [--cover FILE | --remove-cover]
-  quickshare versions SLUG
-  quickshare rollback SLUG REVISION
+  qiaomu-page register --url URL    # create a personal space; no invitation required
+  qiaomu-page join --url URL --invite-stdin # activate an invitation, then finish account onboarding
+  qiaomu-page connect --url URL --code-stdin # connect an existing space
+  qiaomu-page dashboard  # one-use browser login link
+  qiaomu-page invite NAME # one-use invitation, admin only
+  qiaomu-page sharing SLUG [--share-enabled true|false] [--indexable true|false] [--title TEXT] [--description TEXT] [--cover FILE | --remove-cover]
+  qiaomu-page versions SLUG
+  qiaomu-page rollback SLUG REVISION
   --listed adds a site to the optional public gallery
   Friendly addresses are assigned automatically; --path is an optional project path on your account subdomain.
   --slug remains the optional compatible internal address.
@@ -97,7 +108,7 @@ Publish FILE or DIRECTORY.
   Pending retries reuse their request ID; do not change files until an uncertain publish is resolved.
   --request-id ID starts an explicit publication (16–128 letters, numbers, _ or -); reuse it to retry.
 
-QiaoPage — publish an HTML or Markdown work\n\n  quickshare login --url https://share.example.com --token-stdin\n  quickshare publish index.html --path my-work --title "我的作品" --tags 工具,实验 --capture\n  quickshare update my-work index.html [--title ...] [--description ...]\n  quickshare list [--all] [--json]\n  quickshare get my-work [--output saved.html]\n  quickshare unpublish my-work\n  quickshare restore my-work\n  quickshare doctor\n\nOptions: --path PROJECT_PATH --description TEXT --tags a,b --theme sage|sand|ink|rose --draft --json --cover cover.png --capture\nMarkdown (.md/.markdown) is rendered as styled HTML.\nDirectories need index.html or index.md; max 100 files, 8 MB total, 5 MB per file.\nToken: saved by login or QUICKSHARE_TOKEN; config: QUICKSHARE_CONFIG.\n`;
+Qiaomu Page — publish an HTML or Markdown work\n\n  qiaomu-page login --url https://share.example.com --token-stdin\n  qiaomu-page publish index.html --path my-work --title "我的作品" --tags 工具,实验 --capture\n  qiaomu-page update my-work index.html [--title ...] [--description ...]\n  qiaomu-page list [--all] [--json]\n  qiaomu-page get my-work [--output saved.html]\n  qiaomu-page unpublish my-work\n  qiaomu-page restore my-work\n  qiaomu-page doctor\n\nOptions: --path PROJECT_PATH --description TEXT --tags a,b --theme sage|sand|ink|rose --draft --json --cover cover.png --capture\nMarkdown (.md/.markdown) is rendered as styled HTML.\nDirectories need index.html or index.md; max 100 files, 8 MB total, 5 MB per file.\nToken: saved by login or QIAOMU_PAGE_TOKEN; config: QIAOMU_PAGE_CONFIG. Legacy QUICKSHARE_* variables and the quickshare command remain supported.\n`;
 function normalizeUrl(raw) {
   const u = new URL(raw);
   if (
@@ -226,7 +237,7 @@ async function main() {
     throw new Error("--preview requires sharing.");
   if (flags.help || !command || command === "help") return console.log(help);
   if (command === "check") {
-    if (!target) throw new Error("Usage: quickshare check SOURCE");
+    if (!target) throw new Error("Usage: qiaomu-page check SOURCE");
     const report = compatibilityReport(path.resolve(target));
     console.log(flags.json ? JSON.stringify(report, null, 2) : formatCompatibility(report));
     if (!report.ok) process.exitCode = 2;
@@ -241,14 +252,14 @@ async function main() {
     throw new Error("Share settings require the sharing command.");
   if (command === "register") {
     if (args.length !== 1 || !flags.url)
-      throw new Error("Usage: quickshare register --url URL");
+      throw new Error("Usage: qiaomu-page register --url URL");
     const url = normalizeUrl(flags.url);
     let config = fs.existsSync(configPath)
       ? JSON.parse(fs.readFileSync(configPath, "utf8"))
       : null;
     if (config && config.url !== url)
       throw new Error(
-        "A different server is configured. Use a separate QUICKSHARE_CONFIG path.",
+        "A different server is configured. Use a separate QIAOMU_PAGE_CONFIG path.",
       );
     if (config && !config.pending) {
       try {
@@ -314,7 +325,7 @@ async function main() {
       : null;
     if (config && config.url !== url)
       throw new Error(
-        "A different server is configured. Use a separate QUICKSHARE_CONFIG path.",
+        "A different server is configured. Use a separate QIAOMU_PAGE_CONFIG path.",
       );
     let reconnect = false;
     if (config && !config.pending) {
@@ -375,7 +386,7 @@ async function main() {
         required: true,
         next: "Ask the user only for a username, then run account --username NAME --generate-password --output PRIVATE_NEW_FILE --json.",
         password: "The CLI saves a 12-character initial password in a private mode-600 file. Link that file without displaying its contents.",
-        later: "The user can replace the password in QiaoPage account settings.",
+        later: "The user can replace the password in Qiaomu Page account settings.",
       };
     }
     return console.log(
@@ -388,7 +399,7 @@ async function main() {
   }
   if (command === "login") {
     if (!flags.url || !flags["token-stdin"])
-      throw new Error("Usage: quickshare login --url URL --token-stdin");
+      throw new Error("Usage: qiaomu-page login --url URL --token-stdin");
     if (process.stdin.isTTY)
       throw new Error("Pipe your token to stdin; it will not be printed.");
     let input = "";
@@ -407,23 +418,27 @@ async function main() {
   let config = {};
   if (fs.existsSync(configPath))
     config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const environmentUrl =
+      process.env.QIAOMU_PAGE_URL || process.env.QUICKSHARE_URL,
+    environmentToken =
+      process.env.QIAOMU_PAGE_TOKEN || process.env.QUICKSHARE_TOKEN;
   if (
-    (flags.url || process.env.QUICKSHARE_URL) &&
+    (flags.url || environmentUrl) &&
     config.url &&
-    normalizeUrl(flags.url || process.env.QUICKSHARE_URL) !== config.url &&
-    !process.env.QUICKSHARE_TOKEN
+    normalizeUrl(flags.url || environmentUrl) !== config.url &&
+    !environmentToken
   )
     throw new Error(
-      "Different server: run login for that server or provide QUICKSHARE_TOKEN explicitly.",
+      "Different server: run login for that server or provide QIAOMU_PAGE_TOKEN explicitly.",
     );
-  const serverUrl = flags.url || process.env.QUICKSHARE_URL || config.url;
+  const serverUrl = flags.url || environmentUrl || config.url;
   if (!serverUrl)
     throw new Error(
-      "No Quickshare server configured. Run login --url URL or set QUICKSHARE_URL.",
+      "No Qiaomu Page server configured. Run login --url URL or set QIAOMU_PAGE_URL.",
     );
   config.url = normalizeUrl(serverUrl);
-  config.token = process.env.QUICKSHARE_TOKEN || config.token;
-  if (!config.token) throw new Error("Run quickshare login first.");
+  config.token = environmentToken || config.token;
+  if (!config.token) throw new Error("Run qiaomu-page login first.");
   let result;
   // Reserve a private destination before creating any one-use credential.
   const privateOutput =
@@ -586,7 +601,7 @@ async function main() {
     });
   else if (command === "sharing") {
     if (!target || file)
-      throw new Error("Usage: quickshare sharing SLUG [options]");
+      throw new Error("Usage: qiaomu-page sharing SLUG [options]");
     if (flags.output && !flags.preview)
       throw new Error("Sharing --output requires --preview.");
     for (const key of ["share-enabled", "indexable"])
@@ -796,7 +811,7 @@ async function accessCommand(config) {
     throw projectError(
       "ACCESS_MODE_REQUIRED",
       "Set access to link before creating a restricted share.",
-      "Run quickshare access SLUG --mode link.",
+      "Run qiaomu-page access SLUG --mode link.",
     );
   if (!flags.output)
     throw new Error(
@@ -937,7 +952,7 @@ async function projectCommand(config) {
     throw projectError(
       "PROJECT_IDENTITY_MISMATCH",
       "This source is linked to another server or member.",
-      "Select the original profile, or explicitly link the intended site with quickshare link SLUG SOURCE.",
+      "Select the original profile, or explicitly link the intended site with qiaomu-page link SLUG SOURCE.",
     );
   if (command === "status")
     return {
@@ -1004,7 +1019,7 @@ async function projectCommand(config) {
         "Retry the original command and source before starting another operation.",
       );
     if (command === "link") {
-      if (!target) throw new Error("Usage: quickshare link SLUG SOURCE");
+      if (!target) throw new Error("Usage: qiaomu-page link SLUG SOURCE");
       if (state?.pending)
         throw projectError(
           "PENDING_PUBLICATION",
@@ -1036,7 +1051,7 @@ async function projectCommand(config) {
       throw projectError(
         "PROJECT_NOT_LINKED",
         "This source has no linked site.",
-        "Run quickshare link SLUG SOURCE, or publish SOURCE to create a site.",
+        "Run qiaomu-page link SLUG SOURCE, or publish SOURCE to create a site.",
       );
     const current = slug
       ? (await request(config, "/api/v1/works/" + encodeURIComponent(slug)))
@@ -1091,7 +1106,7 @@ async function projectCommand(config) {
       throw projectError(
         "PROJECT_CONFLICT",
         "The remote site changed since this project's last publication.",
-        "Review quickshare get SLUG and versions SLUG; explicitly link SLUG SOURCE to adopt the current revision after review.",
+        "Review qiaomu-page get SLUG and versions SLUG; explicitly link SLUG SOURCE to adopt the current revision after review.",
       );
     if (!state?.pending && current && state?.hash === hash)
       return {
@@ -1369,7 +1384,7 @@ function compatibilityReport(source) {
   walk(source);
   const rules = [
     ["browser-storage", /\b(?:localStorage|sessionStorage|indexedDB)\b/g, "warning", "Browser storage requires an isolated content origin; guard access with try/catch for legacy sandbox links."],
-    ["service-worker", /\bserviceWorker\s*\.\s*register\b/g, "error", "Service Workers are not supported by QiaoPage publishing."],
+    ["service-worker", /\bserviceWorker\s*\.\s*register\b/g, "error", "Service Workers are not supported by Qiaomu Page publishing."],
     ["host-cookie", /\bdocument\s*\.\s*cookie\b/g, "error", "Published pages cannot depend on management-site cookies."],
     ["top-navigation", /\b(?:window\s*\.\s*)?top\s*\.\s*location\b/g, "error", "Top-level navigation is blocked by the publication sandbox."],
     ["management-api", /fetch\s*\(\s*["'`]\/(?:api|auth)\//g, "error", "Published pages cannot call authenticated management APIs."],
@@ -1520,7 +1535,7 @@ function reportError(error, json = flags.json) {
         ? "Use only permitted actions; do not switch to an administrator profile."
         : status === 409
           ? "Read the current site and resolve the conflict before retrying."
-          : "Check command arguments with quickshare --help.");
+          : "Check command arguments with qiaomu-page --help.");
   const message = String(error.message)
     .replace(/(?:Bearer\s+)[^\s]+/gi, "Bearer [redacted]")
     .replace(/\/r\/[a-f0-9]{64}(?=\/|\b)/gi, "/r/[redacted]")
@@ -1537,7 +1552,7 @@ function reportError(error, json = flags.json) {
   console.error(
     json
       ? JSON.stringify({ ok: false, error: detail })
-      : `quickshare: ${message}\n${recovery}`,
+      : `qiaomu-page: ${message}\n${recovery}`,
   );
   process.exitCode = ["NETWORK_ERROR"].includes(code)
     ? 40

@@ -1,21 +1,35 @@
-# QiaoPage 与 Quickshare 的兼容性
+# Qiaomu Page 命名与兼容性
 
-QiaoPage（乔木发布）是从 Quickshare 演进而来的 Agent 发布服务，新的开源仓库为 [joeseesun/qiaopage](https://github.com/joeseesun/qiaopage)。旧项目与已有实例独立维护。
+**Qiaomu** 是母品牌，正式产品名是 **Qiaomu Page**，对话简称是 **QP**。网站、README、安装 Prompt、Skill 和新 CLI 只使用这套名称。
 
-页面、README 和仓库采用新品牌。以下标识保留，用于现有安装直接升级：
+| 对象 | 当前正式名称 |
+| --- | --- |
+| 产品与网站 | Qiaomu Page |
+| GitHub 仓库 | `joeseesun/qiaomu-page` |
+| Agent Skill | `qiaomu-page` |
+| CLI 命令 / 文件 | `qiaomu-page` / `qiaomu-page.js` |
+| 对话简称 | `QP` / `qp` |
 
-- CLI 命令 `quickshare`、`bin/quickshare.js`、下载路径 `/client/quickshare.js`。
-- Skill 标识 `qiaomu-quickshare`，同时识别 QiaoPage、乔木发布、Quickshare、`qp` / `QP` 和 `qs` / `QS`。
-- `QUICKSHARE_*` 环境变量、`~/.config/quickshare/` 配置目录、数据库与 Compose 服务名。
-- API 路径、网站 slug、分享链接和账号身份。
-- 云安装脚本不传项目名时仍使用 `quickshare-agent`；新安装可显式传入 `qiaopage` 或自己的项目名。升级已有云实例时务必沿用原来的项目名。
+Quickshare、`quickshare`、`qiaomu-quickshare` 和 `qs` 不再作为公开品牌或推荐简称。它们只属于兼容层。
 
-更名不需要迁移数据、重新邀请朋友或重建连接。不要为了更名批量替换已有数据库、云资源名或本地凭据路径。
+## 已有安装兼容
 
-## 对话中的简称
+已有连接升级时不迁移数据、不重建账号、不更换作品链接：
 
-可以说“发布到 qp”“发布到qp”“发到 quickshare”“更新 qs 上的网页”或“列出 QiaoPage 的网站”。英文名称不区分大小写，有无空格都能识别；它们使用同一份已配置连接。
+- `quickshare` CLI 命令仍映射到同一实现；旧下载路径 `/client/quickshare.js` 继续可用。
+- `QUICKSHARE_*` 环境变量和 `~/.config/quickshare/` 继续读取。新安装改用 `QIAOMU_PAGE_*` 与 `~/.config/qiaomu-page/`；若检测到旧配置，直接复用，不复制出第二份身份。
+- API 路径、数据库表、Cookie、Compose 服务与存储标识保持不变，避免破坏部署和会话。
+- 旧 Agent 仍可用 `qiaomu-quickshare` Skill；重新安装或更新时，应将它迁移为 `qiaomu-page`，不能让两个 Skill 同时存在。
+- 旧的 QiaoPage、Quickshare 和 QS 对话说法可以静默识别，但产品界面和文档不再主动宣传。
 
-这些是 Agent 的自然语言触发词。终端仍使用 `quickshare` 或 `node quickshare.js`，不会自动创建可能冲突的 `qp` / `qs` shell 命令。询问简称或单独说一个简称不会触发上传。
+仓库或云项目改名会产生平台级影响。GitHub 的旧仓库 URL 可依赖仓库改名跳转；已有 Cloudflare、Vercel、Docker 项目升级时继续沿用原资源名，新安装才使用 `qiaomu-page`。
 
-已有安装无需改目录名、重新注册或重新邀请。复制自己实例的新版 Prompt 给 Agent，检查后原位更新 `qiaomu-quickshare/SKILL.md`，保留个人发布配置和路径；不要另装一个重复技能。Skill 文档版本与 CLI 版本分别管理。
+## 对话用法
+
+推荐说法只有：
+
+- “发布到 QP”
+- “更新 QP 上的这个网站”
+- “列出我在 Qiaomu Page 的作品”
+
+`QP` 是自然语言触发词，不额外创建 `qp` shell 命令。单独询问名称或提到 quadratic programming 不构成发布授权。

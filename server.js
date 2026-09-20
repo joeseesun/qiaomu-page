@@ -29,10 +29,13 @@ const THEMES = ["sage", "sand", "ink", "rose"];
 const summaryColumns =
   "slug,title,description,tags,theme,published,revision,created_at,updated_at,cover_mime,owner_id,listed,file_count,byte_size,access_mode,access_revision,content_label,content_handle,content_path";
 async function createApp(options = {}) {
-  const token = options.token || process.env.QUICKSHARE_TOKEN;
+  const token =
+    options.token ||
+    process.env.QIAOMU_PAGE_TOKEN ||
+    process.env.QUICKSHARE_TOKEN;
   if (!token || token.length < 32)
     throw new Error(
-      "Set QUICKSHARE_TOKEN (at least 32 characters); run npm run setup locally.",
+      "Set QIAOMU_PAGE_TOKEN (at least 32 characters); QUICKSHARE_TOKEN remains supported for existing installs.",
     );
   const dbPath =
     options.dbPath ||
@@ -137,7 +140,7 @@ async function createApp(options = {}) {
           callback(error);
         }
       };
-    app.locals.siteName = "QiaoPage";
+    app.locals.siteName = "Qiaomu Page";
     app.locals.formatDate = (value) =>
       new Date(value)
         .toLocaleDateString("zh-CN", {
@@ -371,10 +374,13 @@ async function createApp(options = {}) {
     });
     app.get("/healthz", async (req, res) => {
       await db.prepare("SELECT 1").get();
-      res.json({ ok: true, service: "quickshare" });
+      res.json({ ok: true, service: "qiaomu-page" });
     });
+    app.get("/client/qiaomu-page.js", async (req, res) =>
+      res.download(path.join(__dirname, "bin/qiaomu-page.js"), "qiaomu-page.js"),
+    );
     app.get("/client/quickshare.js", async (req, res) =>
-      res.download(path.join(__dirname, "bin/quickshare.js"), "quickshare.js"),
+      res.download(path.join(__dirname, "bin/qiaomu-page.js"), "quickshare.js"),
     );
     app.get("/skill.md", async (req, res) =>
       res.type("text/plain").send(agentSkill(baseUrl)),
@@ -1239,7 +1245,7 @@ async function createApp(options = {}) {
             ? 400
             : 500;
       if (status === 500)
-        console.error("QiaoPage request failed:", err.message);
+        console.error("Qiaomu Page request failed:", err.message);
       res.status(status).json({
         error:
           status === 413
@@ -1270,7 +1276,7 @@ async function start() {
     process.env.HOST || "127.0.0.1",
     () =>
       console.log(
-        `QiaoPage listening on ${server.address().address}:${server.address().port}`,
+        `Qiaomu Page listening on ${server.address().address}:${server.address().port}`,
       ),
   );
   for (const signal of ["SIGTERM", "SIGINT"])

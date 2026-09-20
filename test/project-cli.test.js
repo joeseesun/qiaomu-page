@@ -37,7 +37,7 @@ async function setup(t) {
     config = path.join(dir, "config.json");
   fs.writeFileSync(
     cli,
-    await (await fetch(url + "/client/quickshare.js")).text(),
+    await (await fetch(url + "/client/qiaomu-page.js")).text(),
   );
   fs.writeFileSync(source, "<h1>First</h1>");
   fs.writeFileSync(config, JSON.stringify({ url, token }));

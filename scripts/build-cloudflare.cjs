@@ -15,7 +15,11 @@ fs.cpSync(path.join(root, "lib/fonts"), path.join(out, "public/fonts"), {
 });
 fs.mkdirSync(path.join(out, "public/client"), { recursive: true });
 fs.copyFileSync(
-  path.join(root, "bin/quickshare.js"),
+  path.join(root, "bin/qiaomu-page.js"),
+  path.join(out, "public/client/qiaomu-page.js"),
+);
+fs.copyFileSync(
+  path.join(root, "bin/qiaomu-page.js"),
   path.join(out, "public/client/quickshare.js"),
 );
 const templates = fs
