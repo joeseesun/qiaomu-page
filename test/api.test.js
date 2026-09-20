@@ -202,6 +202,19 @@ test("account subdomains use stable readable paths and retain isolated legacy al
   assert.equal(work.url, work.contentUrl);
   assert.equal(work.legacyUrl, `https://www.example.test/s/${work.slug}/`);
 
+  const management = await new Promise((resolve, reject) => {
+    const request = http.request(local + "/", { headers: { Host: "www.example.test" } }, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => (body += chunk));
+      response.on("end", () => resolve({ status: response.statusCode, body }));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+  assert.equal(management.status, 200);
+  assert.match(management.body, /QiaoPage/);
+
   const isolated = await new Promise((resolve, reject) => {
     const request = http.request(local + "/site/", { headers: { Host: "owner.example.test" } }, (response) => {
       let body = "";

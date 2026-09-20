@@ -21,6 +21,8 @@ test("account origin templates keep the handle in the host and project in the pa
   const template = origins.accountTemplate("https://{handle}.t5t6.com/");
   assert.equal(template, "https://{handle}.t5t6.com");
   assert.equal(origins.handleFromHost(template, "joe.t5t6.com"), "joe");
+  assert.equal(origins.handleFromHost(template, "www.t5t6.com"), null);
+  assert.equal(origins.handleFromHost(template, "rss.t5t6.com"), null);
   assert.equal(origins.handleFromHost(template, "www.example.com"), null);
   assert.equal(
     origins.accountUrlFor(template, "joe", "jev", "/assets/app.js"),
