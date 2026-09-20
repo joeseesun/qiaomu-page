@@ -64,6 +64,14 @@ test("password changes revoke browser and pending grants while preserving curren
  assert.equal((await(await call("/api/v1/account/verify-password",{password:"new-password-1234"},"POST",a.token)).json()).valid,true);
  assert.equal(db.prepare("SELECT count(*) n FROM sessions").get().n,count);
 });
+test("password policy accepts eight characters and rejects shorter values",async t=>{
+ const {call,a}=await fixture(t);
+ const accepted=await call("/api/v1/account",{revision:0,username:"alice",password:"short123"},"PATCH",a.token);assert.equal(accepted.status,200,await accepted.clone().text());
+ assert.equal((await call("/auth/login",{username:"alice",password:"short123"},"POST",null)).status,200);
+ assert.equal((await call("/api/v1/account",{revision:1,password:"short12"},"PATCH",a.token)).status,400);
+ assert.equal((await call("/api/v1/account/verify-password",{password:"short12"},"POST",a.token)).status,400);
+ assert.equal((await(await call("/api/v1/account/verify-password",{password:"short123"},"POST",a.token)).json()).valid,true);
+});
 test("concurrent account writes and credentials revoked during password derivation cannot overwrite newer state",async t=>{
  const {call,db,a,server}=await fixture(t);
  const results=await Promise.all([call("/api/v1/account",{revision:0,password:"first-password-123"},"PATCH",a.token),call("/api/v1/account",{revision:0,username:"winner"},"PATCH",a.token)]);
@@ -93,6 +101,8 @@ test("portable CLI discovers permissions, changes own account, stores generated 
  const who=await run(["whoami"]);assert.equal(who.data.account.id,f.a.id);
  const cap=await run(["capabilities"]);assert.equal(cap.data.cliVersion,"1.6.0");
  const renamed=await run(["account","--username","agent-user"]);assert.equal(renamed.code,0,renamed.stderr);
+ const shortPassword=await run(["account","--password-stdin"],"short123\n");assert.equal(shortPassword.code,0,shortPassword.stderr);assert.equal(shortPassword.data.passwordVerified,true);
+ const rejectedPassword=await run(["account","--password-stdin"],"short12\n");assert.equal(rejectedPassword.code,2);assert.match(rejectedPassword.stderr,/8–200/);
  const file=path.join(dir,"password.txt"),generated=await run(["account","--generate-password","--output",file]);
  assert.equal(generated.code,0,generated.stderr);assert.equal(generated.data.passwordVerified,true);
  const password=fs.readFileSync(file,"utf8").trim();assert.ok(password.length>=24);assert.equal(fs.statSync(file).mode&0o777,0o600);
